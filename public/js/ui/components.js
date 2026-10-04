@@ -11,6 +11,8 @@
 // (orange ≤10 s), chevron phase banners. Motion 150–250 ms. All sizes are rem (1rem = 100 design
 // px at 1920×1080, see css/theme.css).
 
+import { t } from '../i18n.js';
+import { useLocale } from './useLocale.js';
 import { h, Fragment } from '../../vendor/preact.module.js';
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from '../../vendor/hooks.module.js';
 import htm from '../../vendor/htm.module.js';
@@ -478,6 +480,7 @@ export function closeAllDialogs() {
 
 /** Renders queued imperative dialogs (one at a time). */
 export function DialogHost() {
+  useLocale();
   const [, force] = useReducer((c) => c + 1, 0);
   useEffect(() => {
     dialogListeners.add(force);
@@ -485,7 +488,7 @@ export function DialogHost() {
   }, []);
   const d = dialogs[0];
   if (!d) return null;
-  const { title = '确认', text, okText = '确认', cancelText = '取消', tone, danger, micro = 'CONFIRMATION' } = d.opts;
+  const { title = t('common.confirm'), text, okText = t('common.confirm'), cancelText = t('common.cancel'), tone, danger, micro = 'CONFIRMATION' } = d.opts;
   const isConfirm = d.kind === 'confirm';
   // Enter confirms unless a specific button has focus (then the native click decides).
   const onKey = (e) => {
@@ -749,9 +752,10 @@ export function doctorNo(id) {
  * @param {{ ms?: number|null, online?: boolean, class?: string }} props
  */
 export function PingPill({ ms, online = true, class: cls }) {
+  useLocale();
   const ok = online && Number.isFinite(ms);
   const tier = !ok ? 'off' : ms < 60 ? 'low' : ms < 200 ? 'medium' : 'high';
-  return html`<span class=${cx('ping', `ping--${tier}`, cls)} title=${ok ? `当前延迟 ${ms}ms` : '未连接'}>
+  return html`<span class=${cx('ping', `ping--${tier}`, cls)} title=${ok ? t('common.pingValue', { ms }) : t('common.disconnected')}>
     <${Icon} name=${ok ? 'signal' : 'wifiOff'} class="ping__icon" />
     <span class="ping__value">${ok ? Math.min(9999, Math.round(ms)) : '--'}</span><span class="ping__unit">ms</span>
   </span>`;
@@ -779,7 +783,8 @@ export function DifficultyIcon({ difficulty, class: cls }) {
  * @param {{ difficulty: string, size?: 'sm'|'md'|'lg', class?: string, code?: string }} props
  */
 export function DifficultyTag({ difficulty, size = 'md', class: cls, code }) {
-  const name = DIFFICULTY_NAMES[difficulty] || difficulty || '—';
+  useLocale();
+  const name = t(`difficulty.${difficulty}`, {}, DIFFICULTY_NAMES[difficulty] || difficulty || '—');
   const color = DIFFICULTY_COLORS[difficulty] || 'var(--text-lo)';
   return html`<span class=${cx('dtag', `dtag--${size}`, cls)} style=${`--d-color:${color}`}>
     <${DifficultyIcon} difficulty=${difficulty} class="dtag__icon" />

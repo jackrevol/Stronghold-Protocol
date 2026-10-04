@@ -12,6 +12,8 @@
 // Global & imperative so every screen can open it: `openGuide(page?)`; <GuideHost/> is mounted once by main.js
 // (and by the dev mock harness); <GuideButton/> is the standard trigger (title, lobby, room, in-match menu).
 
+import { t } from '../i18n.js';
+import { useLocale } from './useLocale.js';
 import { useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.js';
 import { html, Icon, MicroLabel, Button, Spinner } from './components.js';
 import { createStore, useStore } from '../store.js';
@@ -78,9 +80,10 @@ export function openGuide(page = 0) {
 export const closeGuide = () => guideStore.set({ open: false });
 
 /** Standard 玩法说明 trigger button. */
-export function GuideButton({ class: cls, size = 'sm', variant = 'ghost', label = '玩法说明', square = false }) {
+export function GuideButton({ class: cls, size = 'sm', variant = 'ghost', label, square = false }) {
+  useLocale();
   return html`<${Button} variant=${variant} size=${size} icon="book" square=${square} class=${cx('guide-btn', cls)}
-    onClick=${() => openGuide(0)} title="玩法说明" aria-label="玩法说明">${square ? null : label}<//>`;
+    onClick=${() => openGuide(0)} title=${t('common.guide')} aria-label=${t('common.guide')}>${square ? null : label ?? t('common.guide')}<//>`;
 }
 
 function preload(url) {

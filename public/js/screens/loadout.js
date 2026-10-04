@@ -14,6 +14,8 @@
 // The loadout lives in ui/loadoutSync.js (localStorage + room.loadout); the model is ui/loadoutModel.js.
 // Keyboard: Esc closes, ←/→ move through the (filtered) roster when focus is not in the search field.
 
+import { t } from '../i18n.js';
+import { useLocale } from '../ui/useLocale.js';
 import { useEffect, useMemo, useRef, useState } from '../../vendor/hooks.module.js';
 import { html, Icon, MicroLabel, Button, TierChip, TextField, Countdown, Spinner, confirmDialog, hasDeadline, Modal, Fragment } from '../ui/components.js';
 import { Img, RichText, UnitThumb } from '../ui/gameComponents.js';
@@ -572,14 +574,15 @@ export function badgeCount(entries, getChess) {
  * Entry button (lobby / room / briefing).
  * @param {{ from: 'lobby'|'room'|'briefing', size?: string, variant?: string, class?: string, label?: string }} props
  */
-export function LoadoutButton({ from, size = 'md', variant = 'secondary', class: cls, label = '干员调配' }) {
+export function LoadoutButton({ from, size = 'md', variant = 'secondary', class: cls, label }) {
+  useLocale();
   useData('local'); // the official preset icon (re-render once the local-art manifest arrives)
   const entries = useStore((s) => s.entries, Object.is, loadoutStore);
   const n = badgeCount(entries, data.status('chess') === 'ready' ? (id) => data.lookup('chess', id) : null);
   return html`<button type="button" class=${cx('btn', `btn--${variant}`, `btn--${size}`, 'lo-entry', cls)} data-testid="loadout-open"
-      onClick=${() => openLoadout(from)} title="调整干员携带的技能与模组">
+      onClick=${() => openLoadout(from)} title=${t('common.loadoutHint')}>
     <${Img} src=${localAsset('ui/outer', 'operator_preset')} class="lo-entry__icon" fallback=${html`<${Icon} name="edit" class="btn__icon" />`} />
-    <span class="btn__label">${label}</span>
-    ${n ? html`<span class="lo-entry__n num" aria-label=${`${n} 名干员已调整`}>${n}</span>` : null}
+    <span class="btn__label">${label ?? t('common.loadout')}</span>
+    ${n ? html`<span class="lo-entry__n num" aria-label=${t('loadout.changed', { count: n })}>${n}</span>` : null}
   </button>`;
 }

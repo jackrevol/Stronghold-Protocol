@@ -171,6 +171,7 @@ npm start          # 启动服务器：http://localhost:3000
 | [docs/DESIGN.md](docs/DESIGN.md) | 架构与契约（英文）：技术栈、目录分工、网络协议、渲染与 UI、各次试玩后的规则修订 |
 | [docs/SIM.md](docs/SIM.md) | 战斗模拟引擎参考（英文）：钩子、技能描述格式、职业默认行为 |
 | [docs/META.md](docs/META.md) | 对局与经济引擎（英文）：回合流程、商店、联防、最终攻势的实现细节 |
+| [docs/I18N.md](docs/I18N.md) | 多语言界面：简体中文、韩语、英语、日语；翻译范围与扩展方法 |
 | [docs/DATA.md](docs/DATA.md) | 由官方数据表生成的游戏数据（英文） |
 | [docs/ASSETS.md](docs/ASSETS.md) | 素材来源、目录结构与清单（英文） |
 | [docs/BALANCE.md](docs/BALANCE.md) | 难度模型与测量（英文） |

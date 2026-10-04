@@ -19,6 +19,8 @@
 //   reducedMotion()         prefers-reduced-motion (the CSS side lives in css/theme.css + css/devices.css).
 // CSS counterpart: public/css/devices.css (safe-area insets, touch-action, overscroll, tap-target expansion).
 
+import { t } from '../i18n.js';
+import { useLocale } from './useLocale.js';
 import { useEffect, useState } from '../../vendor/hooks.module.js';
 import { html, Icon } from './components.js';
 
@@ -143,6 +145,7 @@ export const fullscreen = {
 
 /** Fullscreen toggle (hidden where the browser has no element fullscreen, e.g. iPhone Safari). */
 export function FullscreenButton({ class: cls = '' }) {
+  useLocale();
   const [on, setOn] = useState(() => fullscreen.active());
   const [ok] = useState(() => fullscreen.supported());
   useEffect(() => {
@@ -154,7 +157,7 @@ export function FullscreenButton({ class: cls = '' }) {
     return () => { d.removeEventListener('fullscreenchange', upd); d.removeEventListener('webkitfullscreenchange', upd); };
   }, []);
   if (!ok) return null;
-  const label = on ? '退出全屏' : '全屏';
+  const label = on ? t('common.exitFullscreen') : t('common.fullscreen');
   return html`<button type="button" class=${`fsbtn tapx ${cls}`} aria-label=${label} title=${label} aria-pressed=${on ? 'true' : 'false'}
       onClick=${() => fullscreen.toggle()}>
     <${Icon} name=${on ? 'collapse' : 'expand'} />

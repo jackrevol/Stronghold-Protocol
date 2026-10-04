@@ -7,6 +7,9 @@
 // hidden core on 险境+), per research 00-INDEX §2. Battlefield pool (`modes[].stages`): 标准 always
 // plays 战场#01, 险境 draws one of 8, 绝境 / 终极 one of 7 (m01 excluded).
 
+import { LanguageSelect } from '../ui/languageSelect.js';
+import { t, localizedText } from '../i18n.js';
+import { useLocale } from '../ui/useLocale.js';
 import { useEffect, useRef, useState } from '../../vendor/hooks.module.js';
 import { DIFFICULTIES, DIFFICULTY_NAMES, DIFFICULTY_COLORS, ROOM_CODE_LEN, MAX_SEATS, modeIdFor } from '../../../shared/constants.js';
 import { html, Button, Icon, MicroLabel, Panel, TextField, PingPill, AvatarFrame, Tooltip, Spinner, DifficultyIcon, doctorNo } from '../ui/components.js';
@@ -42,9 +45,13 @@ export const STAGE_POOL = { FUNNY: ['act1autochess_m01'], NORMAL: 8, HARD: 7, AB
  */
 export function stageLabel(id) {
   const rec = getStage(id);
-  if (rec && typeof rec.name === 'string' && rec.name) return rec.name.split(/\s+/)[0];
+  if (rec && typeof rec.name === 'string' && rec.name) {
+    const source = rec.name.split(/\s+/)[0];
+    const number = source.match(/^战场#(\d+)$/)?.[1];
+    return localizedText('stages', id, 'name', number ? t('stage.name', { number }) : source);
+  }
   const m = String(id || '').match(/^act(\d)autochess_m(\d+)$/);
-  return m ? `战场#${String(Number(m[2]) + (m[1] === '2' ? 4 : 0)).padStart(2, '0')}` : '';
+  return m ? t('stage.name', { number: String(Number(m[2]) + (m[1] === '2' ? 4 : 0)).padStart(2, '0') }) : '';
 }
 
 /**
@@ -56,22 +63,22 @@ export function stageLabel(id) {
 export function stageNote(stages) {
   if (Array.isArray(stages)) {
     const ids = stages.filter((s) => typeof s === 'string' && s);
-    if (ids.length === 1) { const name = stageLabel(ids[0]); return name ? `战场固定为 ${name}` : '战场固定'; }
-    return ids.length > 1 ? `战场随机（共${ids.length}张）` : '';
+    if (ids.length === 1) { const name = stageLabel(ids[0]); return name ? t('stage.fixedName', { name }) : t('stage.fixed'); }
+    return ids.length > 1 ? t('stage.random', { count: ids.length }) : '';
   }
-  return Number.isInteger(stages) && stages > 1 ? `战场随机（共${stages}张）` : '';
+  return Number.isInteger(stages) && stages > 1 ? t('stage.random', { count: stages }) : '';
 }
 
-const MODE_CARDS = [
+const modeCards = () => [
   {
-    id: 'solo', name: '独立模拟', en: 'SOLO SIMULATION', icon: 'user',
-    desc: '独自调配资金与干员，以自己的节奏完成整场模拟。',
-    points: ['1 名博士', '休整期与机变阶段不限时'],
+    id: 'solo', name: t('lobby.solo'), en: 'SOLO SIMULATION', icon: 'user',
+    desc: t('lobby.soloDesc'),
+    points: [t('lobby.soloPlayers'), t('lobby.untimed')],
   },
   {
-    id: 'coop', name: '同盟模拟', en: 'ALLIANCE SIMULATION', icon: 'users',
-    desc: `与至多 ${MAX_SEATS - 1} 名博士组成同盟，共享干员池，联防协作抵御敌潮。`,
-    points: [`1–${MAX_SEATS} 名博士 · 可由 AI 队友补位`, '联防阶段 · 最终攻势合并生命值'],
+    id: 'coop', name: t('lobby.coop'), en: 'ALLIANCE SIMULATION', icon: 'users',
+    desc: t('lobby.coopDesc', { count: MAX_SEATS - 1 }),
+    points: [t('lobby.coopPlayers', { count: MAX_SEATS }), t('lobby.sharedHp')],
   },
 ];
 
@@ -84,15 +91,16 @@ const MODE_CARDS = [
 export function difficultyInfo(roomMode, difficulty) {
   const fallback = MODE_TEXT[roomMode === 'solo' ? 'single' : 'multi'][difficulty] || { code: '', desc: '', effects: [] };
   // modeIdFor() lower-cases the difficulty: never call it with a value the server did not validate.
-  const m = DIFFICULTIES.includes(difficulty) ? getMode(modeIdFor(roomMode, difficulty)) : null;
+  const modeId = DIFFICULTIES.includes(difficulty) ? modeIdFor(roomMode, difficulty) : '';
+  const m = modeId ? getMode(modeId) : null;
   const effects = Array.isArray(m?.effectDescList)
     ? m.effectDescList.map((e) => String(e).replace(/^[·•\s]+/, '')).filter(Boolean)
     : fallback.effects;
   const rounds = Number.isFinite(m?.lastRound) ? m.lastRound : roomMode === 'solo' && difficulty === 'FUNNY' ? 9 : 14;
   return {
     code: typeof m?.code === 'string' ? m.code : fallback.code,
-    desc: typeof m?.desc === 'string' ? m.desc : fallback.desc,
-    effects,
+    desc: localizedText('modes', modeId, 'desc', typeof m?.desc === 'string' ? m.desc : fallback.desc),
+    effects: effects.map((text, i) => localizedText('modes', modeId, `effect${i}`, text)),
     rounds,
     hidden: difficulty !== 'FUNNY',
     stageNote: stageNote(Array.isArray(m?.stages) && m.stages.length ? m.stages : STAGE_POOL[difficulty]),
@@ -167,13 +175,13 @@ function TipsPanel() {
   return html`<div class="tips brackets">
     <div class="tips__head">
       <${Icon} name="info" />
-      <span>作战提示</span>
+      <span>${t('lobby.tips')}</span>
       <${MicroLabel}>TACTICAL TIPS<//>
       <span class="tips__idx num">${String(i + 1).padStart(2, '0')}<span class="t-dim">/${String(list.length).padStart(2, '0')}</span></span>
-      <button type="button" class="tips__nav" onClick=${() => setIdx(i - 1 + list.length)} aria-label="上一条"><${Icon} name="chevronLeft" /></button>
-      <button type="button" class="tips__nav" onClick=${() => setIdx(i + 1)} aria-label="下一条"><${Icon} name="chevronRight" /></button>
+      <button type="button" class="tips__nav" onClick=${() => setIdx(i - 1 + list.length)} aria-label=${t('common.previous')}><${Icon} name="chevronLeft" /></button>
+      <button type="button" class="tips__nav" onClick=${() => setIdx(i + 1)} aria-label=${t('common.next')}><${Icon} name="chevronRight" /></button>
     </div>
-    <p key=${i} class="tips__text">${list[i]}</p>
+    <p key=${i} class="tips__text">${localizedText('tips', list[i], 'text', list[i])}</p>
   </div>`;
 }
 
@@ -188,7 +196,7 @@ function ModeCard({ card, selected, onSelect }) {
       <span class="mode-card__desc">${card.desc}</span>
       <span class="mode-card__points">${card.points.map((p) => html`<span key=${p}>${p}</span>`)}</span>
     </span>
-    <span class="mode-card__check" aria-hidden="true"><${Icon} name="check" />已选定</span>
+    <span class="mode-card__check" aria-hidden="true"><${Icon} name="check" />${t('common.selected')}</span>
   </button>`;
 }
 
@@ -199,20 +207,21 @@ function DifficultyCard({ roomMode, difficulty, selected, onSelect }) {
     <span class="diff-card__bar" aria-hidden="true"></span>
     <span class="diff-card__head">
       <${DifficultyIcon} difficulty=${difficulty} class="diff-card__glyph" />
-      <span class="diff-card__name">${DIFFICULTY_NAMES[difficulty]}</span>
+      <span class="diff-card__name">${t(`difficulty.${difficulty}`, {}, DIFFICULTY_NAMES[difficulty])}</span>
       <span class="diff-card__code num">${info.code}</span>
       <span class="diff-card__meta">
-        <span class="num">${info.rounds}</span> 回合${info.hidden ? html`<span class="diff-card__hidden">+ 隐秘核心</span>` : null}
+        <span class="num">${t('common.rounds', { count: info.rounds })}</span>${info.hidden ? html`<span class="diff-card__hidden">${t('common.hidden')}</span>` : null}
       </span>
     </span>
     <span class="diff-card__desc">${info.desc}</span>
     <span class="diff-card__effects">${info.effects.map((e) => html`<span key=${e}>${e}</span>`)}${info.stageNote ? html`<span key="stage" class="diff-card__stage"><${Icon} name="rook" />${info.stageNote}</span>` : null}</span>
-    <span class="diff-card__check" aria-hidden="true"><${Icon} name="check" /><span>已选定</span></span>
+    <span class="diff-card__check" aria-hidden="true"><${Icon} name="check" /><span>${t('common.selected')}</span></span>
   </button>`;
 }
 
 /** Lobby screen component. */
 export function LobbyScreen() {
+  useLocale();
   const me = useStore((s) => s.me, shallowEqual);
   const conn = useStore((s) => s.connection, shallowEqual);
   useData('config');
@@ -236,7 +245,7 @@ export function LobbyScreen() {
 
   const run = async (kind, fn) => {
     if (inFlight.current) return;
-    if (!online) { toast('尚未连接到服务器，请稍候', 'warn'); return; }
+    if (!online) { toast(t('connection.wait'), 'warn'); return; }
     inFlight.current = true;
     setBusy(kind);
     try { await fn(); } catch (err) { toastError(err); } finally {
@@ -247,7 +256,7 @@ export function LobbyScreen() {
   const create = () => run('create', () => net.request('room.create', { mode: roomMode, difficulty }));
   const join = (c = code) => {
     const k = normalizeCode(c);
-    if (!CODE_RE.test(k)) { toast(`同盟密钥为 ${ROOM_CODE_LEN} 位字母或数字`, 'warn'); return; }
+    if (!CODE_RE.test(k)) { toast(t('lobby.codeInvalid', { length: ROOM_CODE_LEN }), 'warn'); return; }
     run('join', () => net.request('room.join', { code: k }));
   };
   const backToTitle = () => {
@@ -258,20 +267,21 @@ export function LobbyScreen() {
   return html`<div class="screen lobby-screen">
     <header class="topbar">
       <div class="topbar__left">
-        <${Button} variant="ghost" size="sm" icon="chevronLeft" onClick=${backToTitle} title="返回标题">返回<//>
+        <${Button} variant="ghost" size="sm" icon="chevronLeft" onClick=${backToTitle} title=${t('lobby.backTitle')}>${t('common.back')}<//>
         <${PingPill} ms=${conn.ping} online=${online} />
       </div>
       <div class="topbar__center">
         <${MicroLabel} tone="mint">SIMULATION PROTOCOL SELECT<//>
-        <h1 class="topbar__title">选择模拟协议</h1>
+        <h1 class="topbar__title">${t('lobby.title')}</h1>
       </div>
       <div class="topbar__right">
+        <${LanguageSelect} />
         <${GuideButton} class="lobby-guide" variant="secondary" />
         <${LoadoutButton} from="lobby" size="sm" class="lobby-loadout" />
         <div class="me-chip">
           <${AvatarFrame} size="sm" name=${me.name} seat=${0} self=${true} />
           <div class="me-chip__text">
-            <span class="me-chip__name">${me.name || '博士'}</span>
+            <span class="me-chip__name">${me.name || t('common.doctor')}</span>
             <${MicroLabel}>${me.playerId != null ? `DOCTOR #${doctorNo(me.playerId)}` : 'DOCTOR'}<//>
           </div>
         </div>
@@ -280,41 +290,41 @@ export function LobbyScreen() {
 
     <div class="lobby-body screen__scroll">
       <section class="lobby-left">
-        <div class="section-label"><span class="section-label__idx num">01</span>模拟方式<${MicroLabel}>MODE<//></div>
+        <div class="section-label"><span class="section-label__idx num">01</span>${t('lobby.mode')}<${MicroLabel}>MODE<//></div>
         <div class="mode-cards">
-          ${MODE_CARDS.map((c) => html`<${ModeCard} key=${c.id} card=${c} selected=${roomMode === c.id} onSelect=${pickMode} />`)}
+          ${modeCards().map((c) => html`<${ModeCard} key=${c.id} card=${c} selected=${roomMode === c.id} onSelect=${pickMode} />`)}
         </div>
 
-        <div class="section-label"><span class="section-label__idx num">03</span>加入同盟<${MicroLabel}>JOIN WITH ALLIANCE KEY<//></div>
+        <div class="section-label"><span class="section-label__idx num">03</span>${t('lobby.join')}<${MicroLabel}>JOIN WITH ALLIANCE KEY<//></div>
         <${Panel} class="join-panel" tone="amber">
           <div class="join-row">
-            <${TextField} size="code" icon="key" value=${code} placeholder="输入同盟密钥 / 粘贴邀请链接"
+            <${TextField} size="code" icon="key" value=${code} placeholder=${t('lobby.codePlaceholder')}
               transform=${normalizeCode} onInput=${(v) => setCode(normalizeCode(v))} onEnter=${() => join()} />
-            <${Button} variant="amber" size="lg" icon="users" loading=${busy === 'join'} disabled=${!codeOk || !online} onClick=${() => join()}>加入同盟<//>
+            <${Button} variant="amber" size="lg" icon="users" loading=${busy === 'join'} disabled=${!codeOk || !online} onClick=${() => join()}>${t('lobby.join')}<//>
           </div>
           <div class="join-foot">
-            ${recent.length ? html`<span class="t-lo">最近的同盟</span>
+            ${recent.length ? html`<span class="t-lo">${t('lobby.recent')}</span>
               ${recent.map((c) => html`<button key=${c} type="button" class="code-chip num" onClick=${() => { setCode(c); join(c); }}>${c}</button>`)}`
-              : html`<span class="t-dim">向同伴索取 ${ROOM_CODE_LEN} 位同盟密钥，或直接打开邀请链接</span>`}
+              : html`<span class="t-dim">${t('lobby.codeHint', { length: ROOM_CODE_LEN })}</span>`}
           </div>
         <//>
         <${TipsPanel} />
       </section>
 
       <section class="lobby-right">
-        <div class="section-label"><span class="section-label__idx num">02</span>模拟难度<${MicroLabel}>DIFFICULTY<//></div>
+        <div class="section-label"><span class="section-label__idx num">02</span>${t('lobby.difficulty')}<${MicroLabel}>DIFFICULTY<//></div>
         <div class="diff-list">
           ${DIFFICULTIES.map((d) => html`<${DifficultyCard} key=${d} roomMode=${roomMode} difficulty=${d} selected=${difficulty === d} onSelect=${pickDifficulty} />`)}
         </div>
         <div class="create-box">
-          <${Tooltip} block=${true} text=${online ? null : '正在连接服务器…'}>
+          <${Tooltip} block=${true} text=${online ? null : t('connection.waitDots')}>
             <${Button} variant="primary" size="xl" block=${true} iconRight="chevrons" loading=${busy === 'create'} disabled=${!online} onClick=${create}>
-              ${roomMode === 'solo' ? '开始独立模拟' : '创建同盟'}
+              ${roomMode === 'solo' ? t('lobby.startSolo') : t('lobby.create')}
             <//>
           <//>
           <div class="create-box__hint">
             ${online
-              ? html`<span>${roomMode === 'solo' ? '创建后即可开始模拟' : '创建后可邀请好友或添加 AI 队友'}</span>`
+              ? html`<span>${roomMode === 'solo' ? t('lobby.soloHint') : t('lobby.coopHint')}</span>`
               : html`<${Spinner} size="sm" label="CONNECTING" />`}
           </div>
         </div>
