@@ -1,5 +1,10 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "lobby.ownerKey": "서버 관리자 키",
+  "lobby.ownerOnlyHint": "서버 관리자만 방을 만들 수 있습니다(1인 모드 포함). 다른 플레이어는 방 코드로 참가할 수 있습니다. 키는 브라우저에 저장되지 않습니다.",
+  "lobby.creationDisabled": "새 방 생성이 비활성화되어 있습니다. 기존 방에는 참가할 수 있습니다.",
+  "error.ROOM_CREATION_DENIED": "방 생성 권한이 없습니다. 관리자 키를 확인하거나 서버 관리자에게 문의하세요.",
+
   "app.name": "스트롱홀드 프로토콜",
   "app.alliance": "동맹",
   "app.title": "스트롱홀드 프로토콜: 동맹",

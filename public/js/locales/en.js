@@ -1,5 +1,10 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "lobby.ownerKey": "Server owner key",
+  "lobby.ownerOnlyHint": "Only the server owner can create rooms, including solo games. Others can join using a room code. The key is not saved in your browser.",
+  "lobby.creationDisabled": "New room creation is disabled. You can still join an existing room.",
+  "error.ROOM_CREATION_DENIED": "Room creation denied. Check the owner key or contact the server owner.",
+
   "app.name": "Stronghold Protocol",
   "app.alliance": "Alliance",
   "app.title": "Stronghold Protocol: Alliance",

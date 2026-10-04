@@ -44,6 +44,7 @@ import { Lobby } from './lobby.js';
 import { getData, loadData } from './data.js';
 import { PROTOCOL_VERSION, APP_VERSION } from '../shared/constants.js';
 import { MEDIA_PREFIX, AUDIO_EXTS } from '../shared/media.js';
+import { roomPolicy } from './room-policy.js';
 
 /** Repository root. */
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -600,7 +601,8 @@ function makeLogger(quiet) {
 /**
  * Build and start the HTTP + WebSocket server.
  * @param {{
- *   port?: number, host?: string, quiet?: boolean, log?: object,
+ *   port?: number, host?: string, quiet?: boolean, log?: object, listen?: boolean,
+ *   creationPolicy?: ReturnType<typeof roomPolicy>,
  *   publicDir?: string, dataDir?: string, sharedDir?: string,
  *   MatchClass?: Function, seedFn?: () => number,
  *   lobbyGraceMs?: number, reconnectWindowMs?: number, heartbeatMs?: number, helloTimeoutMs?: number,
@@ -612,6 +614,8 @@ function makeLogger(quiet) {
  *                     lobby: Lobby, network: Network, registry: SessionRegistry, close: () => Promise<void> }>}
  */
 export async function startServer(opts = {}) {
+  // Validate before allocating timers or sockets; a broken owner configuration must fail closed.
+  const creationPolicy = opts.creationPolicy || roomPolicy();
   const port = opts.port ?? (process.env.PORT != null && process.env.PORT !== '' ? Number(process.env.PORT) : 3000);
   const host = opts.host ?? process.env.HOST ?? '0.0.0.0';
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new RangeError(`invalid PORT ${port}`);
@@ -633,7 +637,7 @@ export async function startServer(opts = {}) {
   for (const k of ['lobbyGraceMs', 'maxRooms', 'maxRoomsPerAddr', 'maxMatchesPerAddr', 'resyncMinGapMs', 'soloReconnectWindowMs']) {
     if (opts[k] != null) lobbyOptions[k] = opts[k];
   }
-  const lobby = new Lobby({ registry, log, MatchClass: opts.MatchClass, getData: () => data, seedFn: opts.seedFn, options: lobbyOptions });
+  const lobby = new Lobby({ registry, log, MatchClass: opts.MatchClass, getData: () => data, seedFn: opts.seedFn, options: lobbyOptions, creationPolicy });
   const network = new Network({ registry, handler: lobby, log, options: netOptions });
   const serveStatic = createStaticHandler({ publicDir, dataDir, sharedDir, log });
   const startedAt = Date.now();
@@ -660,7 +664,7 @@ export async function startServer(opts = {}) {
       sendError(req, res, 405, '不支持的请求方法 · Method not allowed');
       return;
     }
-    if (parts.rawPath === '/healthz') {
+    if (parts.rawPath === '/healthz' || (opts.listen === false && parts.rawPath === '/api/server')) {
       sendJson(req, res, 200, {
         ok: true, version: PROTOCOL_VERSION, app: APP_VERSION, uptimeSec: Math.round((Date.now() - startedAt) / 1000),
         // the runtime the server is serving right now (public/js/ui/buildGuard.js): a page whose own build is
@@ -691,7 +695,8 @@ export async function startServer(opts = {}) {
     const reject = (status, text) => {
       try { socket.end(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); } catch { socket.destroy(); }
     };
-    if (!parts || parts.rawPath !== '/ws') { reject(404, 'Not Found'); return; }
+    // Vercel may present the rewritten Function path instead of the original /ws URL.
+    if (!parts || (parts.rawPath !== '/ws' && !(opts.listen === false && parts.rawPath === '/api/server'))) { reject(404, 'Not Found'); return; }
     const refused = network.admission(req);
     if (refused === 'per-address') { reject(429, 'Too Many Requests'); return; }
     if (refused) { reject(503, 'Service Unavailable'); return; }
@@ -704,7 +709,7 @@ export async function startServer(opts = {}) {
   });
 
   try {
-    await new Promise((resolve, reject) => {
+    if (opts.listen !== false) await new Promise((resolve, reject) => {
       const onError = (e) => { server.off('listening', onListening); reject(e); };
       const onListening = () => { server.off('error', onError); resolve(); };
       server.once('error', onError);

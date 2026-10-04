@@ -1,5 +1,10 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "lobby.ownerKey": "サーバー管理者キー",
+  "lobby.ownerOnlyHint": "ルーム作成（ソロを含む）はサーバー管理者のみ可能です。他のプレイヤーはルームコードで参加できます。キーはブラウザーに保存されません。",
+  "lobby.creationDisabled": "新しいルームの作成は無効です。既存のルームには参加できます。",
+  "error.ROOM_CREATION_DENIED": "ルームを作成する権限がありません。管理者キーを確認するか、サーバー管理者にお問い合わせください。",
+
   "app.name": "ストロングホールド・プロトコル",
   "app.alliance": "同盟",
   "app.title": "ストロングホールド・プロトコル：同盟",

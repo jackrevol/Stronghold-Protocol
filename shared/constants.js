@@ -120,6 +120,7 @@ export const ERR = Object.freeze({
   ROOM_FULL: 'ROOM_FULL',
   ROOM_STARTED: 'ROOM_STARTED',
   NOT_HOST: 'NOT_HOST',
+  ROOM_CREATION_DENIED: 'ROOM_CREATION_DENIED',
   NOT_READY: 'NOT_READY',
   WRONG_PHASE: 'WRONG_PHASE',
   NO_FUNDS: 'NO_FUNDS',
@@ -137,6 +138,7 @@ export const ERR = Object.freeze({
 });
 
 export const ERR_TEXT = {
+  ROOM_CREATION_DENIED: '创建房间未获授权：请检查管理员密钥或联系服务器管理员',
   BAD_MSG: '无效的请求', RATE: '操作过于频繁', NOT_IN_ROOM: '你不在房间中', ROOM_NOT_FOUND: '未找到该同盟密钥对应的房间',
   ROOM_FULL: '房间已满', ROOM_STARTED: '模拟已开始', NOT_HOST: '只有房主可以操作', NOT_READY: '仍有玩家未就绪',
   WRONG_PHASE: '当前阶段无法进行该操作', NO_FUNDS: '资金不足', HAND_FULL: '整备区已满', BOARD_FULL: '已达到部署上限',

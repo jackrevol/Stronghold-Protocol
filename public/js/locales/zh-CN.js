@@ -1,5 +1,10 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "lobby.ownerKey": "管理员密钥",
+  "lobby.ownerOnlyHint": "仅服务器管理员可创建房间（含独立模拟）；其他玩家可使用同盟密钥加入。密钥不会保存在浏览器中。",
+  "lobby.creationDisabled": "服务器已关闭新房间创建，仍可加入已有同盟。",
+  "error.ROOM_CREATION_DENIED": "创建房间未获授权：请检查管理员密钥或联系服务器管理员",
+
   "app.name": "卫戍协议",
   "app.alliance": "盟约",
   "app.title": "卫戍协议：盟约 · STRONGHOLD PROTOCOL",

@@ -653,6 +653,7 @@ export class Network {
     session.limitKey = conn.key;
 
     const welcome = { t: 'welcome', playerId: session.playerId, token: session.token, name: session.name, serverNow: now, version: PROTOCOL_VERSION, resumed };
+    welcome.roomCreation = this.handler.creationPolicy?.mode || 'public';
     if (validRid(rid)) welcome.rid = rid;
     this.reply(conn, welcome);
     try {

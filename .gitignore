@@ -28,6 +28,9 @@ logs/
 scripts/service.env.cmd
 .env
 .env.*
+!.env.example
+dist/
+.vercel/
 
 # --- OS / editor clutter ---------------------------------------------------------------------------
 .DS_Store

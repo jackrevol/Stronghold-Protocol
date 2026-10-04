@@ -231,6 +231,7 @@ export function LobbyScreen() {
     return DIFFICULTIES.includes(d) ? d : 'FUNNY';
   });
   const [code, setCode] = useState('');
+  const [ownerKey, setOwnerKey] = useState('');
   const [busy, setBusy] = useState(null);
   const [recent] = useState(recentRooms);
   const alive = useRef(true);
@@ -253,7 +254,12 @@ export function LobbyScreen() {
       if (alive.current) setBusy(null);
     }
   };
-  const create = () => run('create', () => net.request('room.create', { mode: roomMode, difficulty }));
+  const creationMode = net.roomCreation || 'public';
+  const creationDisabled = creationMode === 'disabled' || (creationMode === 'owner' && !ownerKey);
+  const create = () => run('create', async () => {
+    await net.request('room.create', { mode: roomMode, difficulty, ...(creationMode === 'owner' ? { ownerKey } : {}) });
+    if (alive.current) setOwnerKey('');
+  });
   const join = (c = code) => {
     const k = normalizeCode(c);
     if (!CODE_RE.test(k)) { toast(t('lobby.codeInvalid', { length: ROOM_CODE_LEN }), 'warn'); return; }
@@ -317,8 +323,12 @@ export function LobbyScreen() {
           ${DIFFICULTIES.map((d) => html`<${DifficultyCard} key=${d} roomMode=${roomMode} difficulty=${d} selected=${difficulty === d} onSelect=${pickDifficulty} />`)}
         </div>
         <div class="create-box">
+          ${creationMode === 'owner' ? html`<${TextField} label=${t('lobby.ownerKey')} micro="SERVER OWNER" type="password"
+            value=${ownerKey} onInput=${setOwnerKey} maxLength=${256} disabled=${!!busy}
+            hint=${t('lobby.ownerOnlyHint')} />` : null}
+          ${creationMode === 'disabled' ? html`<p role="status">${t('lobby.creationDisabled')}</p>` : null}
           <${Tooltip} block=${true} text=${online ? null : t('connection.waitDots')}>
-            <${Button} variant="primary" size="xl" block=${true} iconRight="chevrons" loading=${busy === 'create'} disabled=${!online} onClick=${create}>
+            <${Button} variant="primary" size="xl" block=${true} iconRight="chevrons" loading=${busy === 'create'} disabled=${!online || creationDisabled} onClick=${create}>
               ${roomMode === 'solo' ? t('lobby.startSolo') : t('lobby.create')}
             <//>
           <//>

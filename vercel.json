@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist",
+  "regions": ["icn1"],
+  "functions": {
+    "api/server.js": {
+      "maxDuration": 300,
+      "includeFiles": "{data,shared,server,public/js,public/css,docs/research}/**",
+      "excludeFiles": "{public/assets,public/fonts,public/vendor,test,.cache}/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/ws", "destination": "/api/server" },
+    { "source": "/healthz", "destination": "/api/server" }
+  ],
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "same-origin" },
+      { "key": "Cache-Control", "value": "no-cache" }
+    ] }
+  ]
+}

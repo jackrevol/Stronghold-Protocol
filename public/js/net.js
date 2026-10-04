@@ -383,6 +383,7 @@ export class Net {
   }
 
   _onWelcome(msg) {
+    this.roomCreation = msg.roomCreation || 'public';
     this._clearTimer('_helloTimer', 'clearTimeout');
     this._helloRid = null;
     // Compare future setName() calls against what we sent (the server may normalise the name).
