@@ -1,4 +1,5 @@
 // UI-only localization. Never translate protocol values, player input, or simulation data in place.
+import { operatorMessages, operatorKeys } from './locales/operator.js';
 import zhCN from './locales/zh-CN.js';
 import en from './locales/en.js';
 import ko from './locales/ko.js';
@@ -12,7 +13,9 @@ export const LOCALES = Object.freeze([
   { id: 'en', label: 'English' },
   { id: 'ja', label: '日本語' },
 ]);
-export const catalogs = Object.freeze({ 'zh-CN': zhCN, en, ko, ja });
+export const catalogs = Object.freeze(Object.fromEntries(
+  Object.entries({ 'zh-CN': zhCN, en, ko, ja }).map(([locale, messages]) => [locale, { ...messages, ...operatorMessages[locale] }]),
+));
 const own = (obj, key) => obj != null && Object.hasOwn(obj, key);
 
 /** Accept browser regional tags; return null for unsupported or malformed values. */
@@ -89,3 +92,6 @@ export function syncDocumentLocale(doc = globalThis.document) {
   doc.querySelector('meta[name="description"]')?.setAttribute('content', t('app.description'));
   doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', t('app.name'));
 }
+
+/** Operator UI labels only; never call on player input or protocol values. */
+export const operatorText = (source) => operatorKeys[source] ? t(operatorKeys[source]) : source;

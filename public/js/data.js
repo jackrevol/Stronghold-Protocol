@@ -15,6 +15,8 @@
 // Synchronous getters (getChess, getBond, …) return null until the file has loaded; use
 // `loadData(...)` to await, or the `useData(...)` hook to re-render when files arrive.
 
+import { i18n } from './i18n.js';
+import { createContentData } from './contentLocale.js';
 import { useEffect, useReducer } from '../vendor/hooks.module.js';
 
 /** Known data files (name → URL basename). Unknown names are allowed too (`/data/<name>.json`). */
@@ -194,7 +196,8 @@ export function createDataStore(opts = {}) {
 }
 
 /** Browser data store singleton. */
-export const data = createDataStore();
+export const rawData = createDataStore();
+export const data = createContentData(rawData, i18n);
 
 /** @param {...string} names @returns {Promise<any[]>} */
 export const loadData = (...names) => data.loadAll(...names);

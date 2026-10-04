@@ -28,6 +28,7 @@
     "build:vercel": "node tools/build-vercel.mjs",
     "test": "node --test",
     "vendor": "node tools/vendor.mjs",
+    "build-i18n": "node tools/build-i18n.mjs",
     "build-data": "node tools/build-data.mjs",
     "assets": "node tools/vendor.mjs && node tools/fetch-assets.mjs",
     "postinstall": "node tools/vendor.mjs",

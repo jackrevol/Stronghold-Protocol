@@ -9,6 +9,8 @@
 // them only the default skill / module is offered. The option rules are shared with the server
 // (shared/protocol.js loadoutOptions / checkLoadout), so a sanitised loadout is always accepted.
 
+import { operatorText } from '../i18n.js';
+import { sourceRecord } from '../../../shared/sourceRecord.js';
 import { loadoutOptions, checkLoadout, resolveLoadout, MODULE_NONE, LOADOUT_LIMITS } from '../../../shared/protocol.js';
 
 export { MODULE_NONE };
@@ -292,7 +294,7 @@ export function filterRoster(roster, f = {}, entries = {}, getChess = () => null
       if (!effectiveChoice(entries, c, golden).changed) return false;
     }
     if (q) {
-      const hay = [c.name, c.appellation, c.subProfessionName, PROF_NAME[c.profession], ...(c.bonds || []).map((b) => getBond(b)?.name)]
+      const hay = [c.name, sourceRecord(c).name, c.appellation, c.subProfessionName, operatorText(PROF_NAME[c.profession]), ...(c.bonds || []).map((b) => getBond(b)?.name)]
         .filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
@@ -336,7 +338,7 @@ export function attrRows(attr) {
     if (typeof v !== 'number' || !Number.isFinite(v) || v === 0) continue;
     const [label, unit] = ATTR_LABEL[k] || [k, ''];
     const n = Math.abs(v) < 10 && !Number.isInteger(v) ? Number(v.toFixed(2)) : Math.round(v);
-    out.push({ key: k, label, text: `${v > 0 ? '+' : ''}${n}${unit}`, positive: k === 'cost' || k === 'respawnTime' || k === 'respawn_time' || k === 'baseAttackTime' || k === 'base_attack_time' ? v < 0 : v > 0 });
+    out.push({ key: k, label: operatorText(label), text: `${v > 0 ? '+' : ''}${n}${operatorText(unit)}`, positive: k === 'cost' || k === 'respawnTime' || k === 'respawn_time' || k === 'baseAttackTime' || k === 'base_attack_time' ? v < 0 : v > 0 });
   }
   return out;
 }
@@ -350,10 +352,10 @@ export function skillTags(rec) {
   const passive = rec.skillType === 'PASSIVE' || rec.spType === 'ON_DEPLOY' || rec.spType === 8;
   const spKind = passive ? 'passive' : rec.spType === 'INCREASE_WHEN_ATTACK' ? 'atk' : rec.spType === 'INCREASE_WHEN_TAKEN_DAMAGE' ? 'def' : 'time';
   let duration = null;
-  if (rec.durationType === 'AMMO') duration = '弹药';
-  else if (Number(rec.duration) > 0) duration = `${Number(rec.duration)}秒`;
+  if (rec.durationType === 'AMMO') duration = operatorText('弹药');
+  else if (Number(rec.duration) > 0) duration = `${Number(rec.duration)}${operatorText('秒')}`;
   return {
-    sp: SP_TYPE[rec.spType] || (passive ? '被动' : '技力'),
+    sp: operatorText(SP_TYPE[rec.spType] || (passive ? '被动' : '技力')),
     spKind,
     init: passive ? null : Number.isFinite(rec.initSp) ? rec.initSp : 0,
     cost: passive ? null : Number.isFinite(rec.spCost) ? rec.spCost : 0,

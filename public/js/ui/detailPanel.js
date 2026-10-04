@@ -31,6 +31,7 @@
 // The stats block (chessStatsBlock), the 特性 text (traitText) and the talent list (chessTalents) are exported: the 干员调配
 // screen's 局内数值 section draws the same ones for the chosen skill / module, without a live entry (GitHub issue #64).
 
+import { operatorText } from '../i18n.js';
 import { html, Icon, TierChip, MicroLabel, Button, confirmDialog, useTicker } from './components.js';
 import { Img, RichText, UnitThumb, BondGlyph, GIcon } from './gameComponents.js';
 import { attackInterval, rangeGridBox, fmtNum, tileKey, chessLoadout, nextThreshold, bondTier, briefingBondTip, pieceBondIds, grantedBonds, morphPairings } from './gameLogic.js';
@@ -83,7 +84,7 @@ export function cardRangeGrid(live, rec, chess) {
 
 /** Mini range map. */
 export function RangeGrid({ grid, class: cls }) {
-  if (Array.isArray(grid) && grid.length >= FIELD_WIDE_CELLS) return html`<span class=${cx('rgrid-all', cls)} aria-label="攻击范围">全场</span>`;
+  if (Array.isArray(grid) && grid.length >= FIELD_WIDE_CELLS) return html`<span class=${cx('rgrid-all', cls)} aria-label=${operatorText('攻击范围')}>${operatorText('全场')}</span>`;
   const box = rangeGridBox(grid);
   if (!box.cells.size) return html`<span class="t-dim">—</span>`;
   const cells = [];
@@ -93,11 +94,11 @@ export function RangeGrid({ grid, class: cls }) {
       cells.push(html`<i key=${`${r},${c}`} class=${cx(box.cells.has(tileKey(r, c)) && 'on', self && 'self')}></i>`);
     }
   }
-  return html`<div class=${cx('rgrid', cls)} style=${rangeGridStyle(box)} aria-label="攻击范围">${cells}</div>`;
+  return html`<div class=${cx('rgrid', cls)} style=${rangeGridStyle(box)} aria-label=${operatorText('攻击范围')}>${cells}</div>`;
 }
 
 function Stat({ k, v, sub, tone = null, title }) {
-  return html`<div class=${cx('dstat', tone && `is-${tone}`)} title=${title}><span class="dstat__k">${k}</span><span class="dstat__row"><b class="dstat__v num">${v}</b>${sub ? html`<small>${sub}</small>` : null}</span></div>`;
+  return html`<div class=${cx('dstat', tone && `is-${tone}`)} title=${title}><span class="dstat__k">${operatorText(k)}</span><span class="dstat__row"><b class="dstat__v num">${v}</b>${sub ? html`<small>${sub}</small>` : null}</span></div>`;
 }
 
 /** Tolerance below which a live stat counts as its base (display rounding). */
@@ -349,7 +350,7 @@ export function chessStatsBlock({ rec, chess, live = null }) {
         <${Stat} k="部署费用" v=${s.cost ?? '—'} />
         <${Stat} k="再部署" v=${s.respawnTime != null ? `${s.respawnTime}s` : '—'} />
       </div>
-      <div class="drange"><span class="dstat__k">攻击范围</span><${RangeGrid} grid=${cardRangeGrid(live, rec, chess)} /></div>
+      <div class="drange"><span class="dstat__k">${operatorText('攻击范围')}</span><${RangeGrid} grid=${cardRangeGrid(live, rec, chess)} /></div>
     </div>`;
 }
 
@@ -383,18 +384,18 @@ export function ChessDetail({ chess, piece, unit, snapHp, editable, onSell, bond
       <div class="dhead__info">
         <div class="dhead__chips">
           <${TierChip} tier=${c.tier} golden=${golden} size="lg" />
-          ${golden ? html`<span class="dtag-elite">精锐</span>` : null}
-          ${piece?.kind === 'token' ? html`<span class="dtag-token">召唤物</span>` : null}
+          ${golden ? html`<span class="dtag-elite">${operatorText('精锐')}</span>` : null}
+          ${piece?.kind === 'token' ? html`<span class="dtag-token">${operatorText('召唤物')}</span>` : null}
         </div>
         <h3 class="dhead__name">${c.name}</h3>
         <span class="dhead__en">${c.appellation || ''}</span>
         <div class="dhead__class">
           <${Img} src=${profIconUrl(m, c.profession)} class="dhead__prof" />
-          <span>${PROF_NAME[c.profession] || c.profession || ''}</span>
+          <span>${operatorText(PROF_NAME[c.profession]) || c.profession || ''}</span>
           <i class="sep"></i>
           <${Img} src=${subProfIconUrl(m, c)} class="dhead__sub" />
           <span>${c.subProfessionName || ''}</span>
-          <span class="dhead__pos">${c.position === 'MELEE' ? '近战位' : '远程位'}</span>
+          <span class="dhead__pos">${operatorText(c.position === 'MELEE' ? '近战位' : '远程位')}</span>
         </div>
         ${hp ? html`<div class="dhp"><i style=${`width:${Math.max(0, Math.min(100, (hp.hp / Math.max(1, hp.max)) * 100))}%`}></i><span class="num">${fmtNum(hp.hp)} / ${fmtNum(hp.max)}</span></div>` : null}
         <${BondChips} bondIds=${bondIds} bonds=${bonds} off=${offBonds} onBond=${onBond} granted=${grantedIds} />
@@ -403,29 +404,29 @@ export function ChessDetail({ chess, piece, unit, snapHp, editable, onSell, bond
   blocks.garrison = garrison ? html`<${GarrisonBlock} key="garrison" garrison=${garrison} m=${m} />` : null;
   blocks.trait = c.trait?.desc ? html`<p key="trait" class="dtrait"><${Icon} name="info" /><${RichText} text=${traitText(c, golden, lo)} /></p>` : null;
   blocks.stats = chessStatsBlock({ rec: fr, chess: c, live });
-  blocks.skill = sk ? html`<${Section} key="skill" title="技能" micro="SKILL" class="dsec--skill">
+  blocks.skill = sk ? html`<${Section} key="skill" title=${operatorText('技能')} micro="SKILL" class="dsec--skill">
       <div class="dskill" data-skill=${sk.skillId || ''}>
         <${Img} src=${skIcon} class="dskill__icon" fallback=${html`<span class="dskill__icon dskill__icon--empty">${skSlot ? html`<b class="num">${skSlot}</b>` : null}</span>`} />
         <div class="dskill__meta">
-          <b class="dskill__name">${skSlot && (lo?.choices || 0) > 1 ? html`<span class="dskill__slot num" title=${`技能 ${skSlot}`}>${skSlot}</span>` : null}${sk.name}${lo && !lo.defaultSkill ? html`<span class="dtag-loadout" title="干员调配中选择的技能">已调配</span>` : null}</b>
+          <b class="dskill__name">${skSlot && (lo?.choices || 0) > 1 ? html`<span class="dskill__slot num" title=${`技能 ${skSlot}`}>${skSlot}</span>` : null}${sk.name}${lo && !lo.defaultSkill ? html`<span class="dtag-loadout" title=${operatorText('干员调配中选择的技能')}>${operatorText('已调配')}</span>` : null}</b>
           <div class="dskill__tags">
-            <span class="dsp dsp--${sk.spType === 'INCREASE_WHEN_ATTACK' ? 'atk' : sk.spType === 'INCREASE_WHEN_TAKEN_DAMAGE' ? 'def' : 'time'}">${SP_TYPE[sk.spType] || '技力'}</span>
-            <span class="dsp dsp--trig">${SKILL_TYPE[sk.skillType] || '自动触发'}</span>
-            ${sk.spType !== 'ON_DEPLOY' && sk.skillType !== 'PASSIVE' ? html`<span class="dsp__num"><${GIcon} name="bolt" />初始 <b class="num">${sk.initSp ?? 0}</b> · 消耗 <b class="num">${sk.spCost ?? 0}</b></span>` : null}
-            ${sk.duration > 0 ? html`<span class="dsp__num">持续 <b class="num">${sk.duration}</b>s</span>` : null}
-            ${sk.maxChargeTime > 1 ? html`<span class="dsp__num">充能 <b class="num">${sk.maxChargeTime}</b></span>` : null}
+            <span class="dsp dsp--${sk.spType === 'INCREASE_WHEN_ATTACK' ? 'atk' : sk.spType === 'INCREASE_WHEN_TAKEN_DAMAGE' ? 'def' : 'time'}">${operatorText(SP_TYPE[sk.spType]) || '技力'}</span>
+            <span class="dsp dsp--trig">${operatorText(SKILL_TYPE[sk.skillType]) || '自动触发'}</span>
+            ${sk.spType !== 'ON_DEPLOY' && sk.skillType !== 'PASSIVE' ? html`<span class="dsp__num"><${GIcon} name="bolt" />${operatorText('初始')} <b class="num">${sk.initSp ?? 0}</b> · ${operatorText('消耗')} <b class="num">${sk.spCost ?? 0}</b></span>` : null}
+            ${sk.duration > 0 ? html`<span class="dsp__num">${operatorText('持续')} <b class="num">${sk.duration}</b>s</span>` : null}
+            ${sk.maxChargeTime > 1 ? html`<span class="dsp__num">${operatorText('充能')} <b class="num">${sk.maxChargeTime}</b></span>` : null}
           </div>
         </div>
       </div>
       <${RichText} as="p" text=${sk.descRaw || sk.desc} class="dtext" />
     <//>` : null;
-  blocks.module = golden && lo?.module ? html`<${Section} key="module" title="模组" micro="MODULE" class="dsec--module">
+  blocks.module = golden && lo?.module ? html`<${Section} key="module" title=${operatorText('模组')} micro="MODULE" class="dsec--module">
       <div class=${cx('dmodule', lo.module.none && 'is-none')} data-module=${lo.module.id}>
         ${!lo.module.none && lo.module.typeName ? html`<span class="dmodule__icon" data-type=${lo.module.typeName}>
           <${Img} src=${moduleTypeIconUrl(data.get('local'), lo.module.typeName)} fallback=${html`<b class="num">${moduleBadge(lo.module)}</b>`} /></span>` : null}
         <b class="dmodule__name">${lo.module.name}</b>
         ${lo.module.typeName ? html`<span class="dmodule__type">${lo.module.typeName}</span>` : null}
-        ${!lo.defaultModule ? html`<span class="dtag-loadout" title="干员调配中选择的模组">已调配</span>` : null}
+        ${!lo.defaultModule ? html`<span class="dtag-loadout" title=${operatorText('干员调配中选择的模组')}>${operatorText('已调配')}</span>` : null}
       </div>
     <//>` : null;
   // (a 变形同构体 / bond item row shows its pairing against what this operator carries: ItemRow `carried`)
@@ -437,7 +438,7 @@ export function ChessDetail({ chess, piece, unit, snapHp, editable, onSell, bond
       ${carried.map((id, i) => html`<${ItemRow} key=${`${i}:${id}`} itemId=${id} carried=${carried} off=${offBonds} />`)}
     <//>` : null;
   const talents = chessTalents(fr);
-  blocks.talents = talents.length ? html`<${Section} key="talents" title="天赋" micro="TALENT" class="dsec--talent">
+  blocks.talents = talents.length ? html`<${Section} key="talents" title=${operatorText('天赋')} micro="TALENT" class="dsec--talent">
       ${talents.map((t, i) => html`<div key=${i} class="dtalent"><b>${t.name}</b><${RichText} text=${t.descRaw || t.desc} class="dtext" /></div>`)}
     <//>` : null;
   blocks.actions = piece && editable && piece.kind !== 'item' ? html`<div key="actions" class="dactions">
@@ -469,7 +470,7 @@ export function ItemDetail({ item, piece, editable, onDestroy, offBonds = null }
       </div>
     </div>
     <${Section} title="效果" micro="EFFECT"><${RichText} as="p" text=${item.descRaw || item.desc} class="dtext" /><//>
-    ${item.canGiveBond ? html`<${Section} title="天赋" micro="TALENT" class="dsec--morph"><${MorphPairings} off=${offBonds} /><//>` : null}
+    ${item.canGiveBond ? html`<${Section} title=${operatorText('天赋')} micro="TALENT" class="dsec--morph"><${MorphPairings} off=${offBonds} /><//>` : null}
     ${!item.canGiveBond && item.giveBondId ? html`<${MorphGrantLine} item=${item} off=${offBonds} />` : null}
     ${item.note ? html`<p class="dhint dhint--rule"><${Icon} name="info" />${item.note}</p>` : null}
     ${item.itemType === 'MAGIC'
@@ -583,7 +584,7 @@ export function TokenDetail({ token, piece, ownerId = null, snapHp = null, live 
     <div class="dhead dhead--item">
       <div class="dhead__icon"><${Img} src=${tokenAvatarUrl(m, token.tokenId)} fallback=${html`<${GIcon} name="target" />`} /></div>
       <div class="dhead__info">
-        <div class="dhead__chips"><span class="dtag-token">召唤物</span>${piece?.count > 1 ? html`<span class="dtag-kind num">×${piece.count}</span>` : null}</div>
+        <div class="dhead__chips"><span class="dtag-token">${operatorText('召唤物')}</span>${piece?.count > 1 ? html`<span class="dtag-kind num">×${piece.count}</span>` : null}</div>
         <h3 class="dhead__name">${token.name}</h3>
         ${hp ? html`<div class="dhp"><i style=${`width:${Math.max(0, Math.min(100, (hp.hp / Math.max(1, hp.max)) * 100))}%`}></i><span class="num">${fmtNum(hp.hp)} / ${fmtNum(hp.max)}</span></div>` : null}
       </div>
@@ -595,8 +596,8 @@ export function TokenDetail({ token, piece, ownerId = null, snapHp = null, live 
     </div>
     ${hint ? html`<p class="dhint"><${Icon} name="info" />${hint}</p>` : null}
     ${token.descRaw || token.desc ? html`<${Section} title="说明"><${RichText} as="p" text=${token.descRaw || token.desc} class="dtext" /><//>` : null}
-    ${skill ? html`<${Section} title="技能"><p class="dtext"><b>${skill.name}</b> ${skill.desc}</p><//>` : null}
-    ${talents.length ? html`<${Section} title="天赋">${talents.map((t, i) => html`<p class="dtext" key=${i}><b>${t.name}</b> ${t.desc}</p>`)}<//>` : null}`;
+    ${skill ? html`<${Section} title=${operatorText('技能')}><p class="dtext"><b>${skill.name}</b> ${skill.desc}</p><//>` : null}
+    ${talents.length ? html`<${Section} title=${operatorText('天赋')}>${talents.map((t, i) => html`<p class="dtext" key=${i}><b>${t.name}</b> ${t.desc}</p>`)}<//>` : null}`;
 }
 
 /**
@@ -669,7 +670,7 @@ export function DetailPanel({ detail, editable, snapHp, onClose, onSell, onDestr
   };
   return html`<aside class=${cx('dpanel', 'brackets', `dpanel--${detail.type}`, side === 'right' && 'dpanel--right', side === 'right' && shopOpen && 'is-shop')} role="dialog" aria-label="详情"
       data-side=${side === 'right' ? 'right' : 'left'}>
-    <button type="button" class="dpanel__close" aria-label="关闭" onClick=${onClose}><${Icon} name="close" /></button>
+    <button type="button" class="dpanel__close" aria-label=${operatorText('关闭')} onClick=${onClose}><${Icon} name="close" /></button>
     <div class="dpanel__scroll">
       ${detail.type === 'chess' ? html`<${ChessDetail} chess=${detail.chess} piece=${detail.piece} snapHp=${snapHp} editable=${editable} onSell=${sellIt}
         bonds=${bonds} offBonds=${offBonds} loadout=${loadout} onBond=${onBond} live=${liveNow} hint=${detail.hint || null} unitItems=${detail.unitItems || null} />` : null}

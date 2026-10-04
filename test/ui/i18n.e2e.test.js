@@ -123,3 +123,45 @@ test('long translations keep language and room controls within a landscape phone
     }
   } finally { await context.close(); }
 });
+
+test('operator content switches live, including search, selected skills, talents and modules', { skip: !enabled }, async () => {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror',error => errors.push(error.message));
+  await page.setViewport({width:1440,height:1000});
+  await page.evaluateOnNewDocument(() => localStorage.setItem('sp.pref.locale','ko'));
+  try {
+    await page.goto(base,{waitUntil:'domcontentloaded'});
+    await page.waitForSelector('.title-login input');
+    await page.type('.title-login input','Doctor中文');
+    await page.click('.title-login .btn--primary');
+    await page.waitForSelector('[data-testid="loadout-open"]');
+    await page.click('[data-testid="loadout-open"]');
+    await page.waitForFunction(() => document.querySelector('[data-chess="chess_char_1_01_a"] .lo-card__name')?.textContent === '인사이더');
+    await page.type('.lo-search input','인사이더');
+    await page.waitForFunction(()=>document.querySelectorAll('.lo-card').length===1);
+    await page.click('[data-chess="chess_char_1_01_a"]');
+    await page.click('.lo-skill[data-skill="0"]');
+    const loadoutBefore = await page.evaluate(async()=>JSON.stringify((await import('/js/ui/loadoutSync.js')).loadoutStore.get().entries));
+    for (const [locale, name] of [['en','Insider'],['ja','インサイダー'],['zh-CN','隐现'],['ko','인사이더']]) {
+      await page.evaluate(async locale => {
+        const {setLocale}=await import('/js/i18n.js');
+        const {data}=await import('/js/data.js');
+        setLocale(locale);
+        await data.loadLocale();
+      },locale);
+      await page.waitForFunction(name=>document.querySelector('.lo-dhead__name')?.textContent===name,{},name);
+      assert.equal(await page.$eval('.lo-search input',el=>el.value),'인사이더','search input preserved');
+      assert.equal(await page.evaluate(async()=>JSON.stringify((await import('/js/ui/loadoutSync.js')).loadoutStore.get().entries)),loadoutBefore);
+      const texts = await page.$$eval('.lo-skill__name, .lo-skill__desc, .lo-mod__name, .lo-minfo__tname, .lo-minfo__v .rt',els=>els.map(el=>el.textContent).join('\n'));
+      if (locale==='ko'||locale==='en') assert.doesNotMatch(texts,/\p{Script=Han}/u);
+      assert.equal(await page.$eval('.lo-skill[data-skill="0"]',el=>el.getAttribute('aria-checked')),'true');
+      if (process.env.SP_I18N_SCREENSHOTS) {
+        mkdirSync(process.env.SP_I18N_SCREENSHOTS,{recursive:true});
+        await page.screenshot({path:`${process.env.SP_I18N_SCREENSHOTS}/operators-${locale}.png`});
+      }
+    }
+    assert.deepEqual(errors,[]);
+  } finally {await context.close();}
+});

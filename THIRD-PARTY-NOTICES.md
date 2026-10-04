@@ -487,3 +487,7 @@ SOFTWARE.
    See the License for the specific language governing permissions and
    limitations under the License.
 ```
+
+### Localized game data
+
+`tools/build-i18n.mjs` derives the display text in `data/locales/*.json` from the Chinese, Korean, English and Japanese client tables mirrored by [ArknightsAssets/ArknightsGamedata](https://github.com/ArknightsAssets/ArknightsGamedata/tree/56aee3d6c5a29c3a0d192456d70d14252cbb0804). Arknights game text and data remain © Hypergryph / Yostar and their licensors, outside the code license, as described in [NOTICE.md](NOTICE.md). Project translations for text missing from regional tables are documented in `tools/i18n/overrides.mjs`.
