@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # macOS / Linux: clean generated output, rebuild, and start the game server.
+# Downloaded models, assets, fonts, and extraction caches are retained.
 # Usage: ./start.sh   or   PORT=3001 HOST=127.0.0.1 ./start.sh
 set -euo pipefail
 
@@ -32,8 +33,8 @@ rm -rf -- "$PROJECT_ROOT/dist" "$PROJECT_ROOT/public/vendor"
 echo "[2/4] 잠금 파일 기준 의존성 설치"
 npm ci --no-audit --no-fund
 
-echo "[3/4] 새 빌드 생성"
-npm run build:vercel
+echo "[3/4] 새 빌드 생성 (기존 모델·에셋 사용)"
+SP_FETCH_ASSETS=0 npm run build:vercel
 
 echo "[4/4] 서버 실행 — http://localhost:${PORT:-3000} (종료: Ctrl+C)"
 exec node "$PROJECT_ROOT/server/index.js"

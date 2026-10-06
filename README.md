@@ -86,7 +86,7 @@ npm start          # 启动服务器：http://localhost:3000
 
 也可以直接运行启动脚本（Windows `scripts\start-windows.bat`，macOS / Linux `scripts/start.sh`）：首次会自动安装依赖、下载素材，然后启动服务器并打开浏览器。
 
-macOS / Linux 从源码**清理、重新构建并启动**：运行根目录的 `./start.sh`（或 `npm run start:clean`）。它会删除 `dist/` 和 `public/vendor/`，按锁文件执行 `npm ci`，重新生成前端库及 `dist/`，然后启动 Node.js 游戏服务器。已下载的素材、字体及本机配置保留。默认端口 3000；可用 `PORT=3001 HOST=127.0.0.1 ./start.sh` 指定端口和监听地址，按 Ctrl+C 停止。
+macOS / Linux 从源码**清理、重新构建并启动**：运行根目录的 `./start.sh`（或 `npm run start:clean`）。它会删除 `dist/` 和 `public/vendor/`，按锁文件执行 `npm ci`，重新生成前端库及 `dist/`，然后启动 Node.js 游戏服务器。已下载的模型、素材、字体、提取缓存及本机配置保留；构建时固定 `SP_FETCH_ASSETS=0`，使用现有素材。默认端口 3000；可用 `PORT=3001 HOST=127.0.0.1 ./start.sh` 指定端口和监听地址，按 Ctrl+C 停止。
 
 - **本地客户端素材（可选）**：官方 3D 棋盘、部分官方界面图标（交流按钮与表情面板的边框、模组类型图标等）和灼热 / 炽焰源石虫的官方模型需要从本机的《明日方舟》PC 客户端提取（Windows 原生客户端、macOS 的 CrossOver 或 PlayCover）。`npm run setup` 检测到客户端时会询问是否提取（需要 Python 3.8+，依赖装在项目内的 `.venv-extract`，不影响系统）；之后可以用 `node tools/setup.mjs --local` 重新提取，或用 `--game "<…/StreamingAssets/AB/Windows>"` 指定路径。没有客户端时游戏照常运行，这几样换成替代样式：2D 棋盘、样式相近的图标、染色的普通源石虫。表情和「玩法说明」的教程图随上面的素材一起从公开镜像下载，不需要客户端。没有客户端的服务器（例如 Linux VPS）也可以从**同一版本**的整合包里复制 `public/assets/local/` 和 `data/local-assets.json`，见 [docs/DEPLOY.md](docs/DEPLOY.md) 的「本地客户端素材」。
 - 素材下载优先使用 GitHub，失败时自动改用 jsDelivr 镜像。
