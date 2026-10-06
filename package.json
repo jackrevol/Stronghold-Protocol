@@ -24,6 +24,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
+    "start:clean": "bash ./start.sh",
     "dev": "node --watch server/index.js",
     "build:vercel": "node tools/build-vercel.mjs",
     "test": "node --test",
