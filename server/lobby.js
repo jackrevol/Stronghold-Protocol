@@ -107,6 +107,7 @@ export class Room {
     this.code = code;
     this.mode = mode;
     this.difficulty = difficulty;
+    this.wizardMode = false;
     /** @type {string | null} */
     this.hostId = null;
     /** @type {(Seat | null)[]} */
@@ -151,6 +152,7 @@ export class Room {
       hostId: this.hostId,
       mode: this.mode,
       difficulty: this.difficulty,
+      wizardMode: this.wizardMode,
       inMatch: !!this.match,
       seats: this.seats.map((s) => (s
         ? { seat: s.seat, playerId: s.playerId, name: s.name, isBot: s.isBot, ready: s.ready, connected: s.connected && !s.left }
@@ -257,6 +259,7 @@ export class Lobby {
       case 'room.leave': return this.leave(session);
       case 'room.ready': return this.ready(session, msg);
       case 'room.setDifficulty': return this.setDifficulty(session, msg);
+      case 'room.setWizardMode': return this.setWizardMode(session, msg);
       case 'room.addBot': return this.addBot(session);
       case 'room.removeBot': return this.removeBot(session, msg);
       case 'room.start': return this.start(session);
@@ -379,6 +382,20 @@ export class Lobby {
     return OK;
   }
 
+  setWizardMode(session, { on }) {
+    const room = this.roomOf(session);
+    if (!room) return fail(ERR.NOT_IN_ROOM);
+    if (room.hostId !== session.playerId) return fail(ERR.NOT_HOST);
+    if (room.match) return fail(ERR.ROOM_STARTED);
+    this.dropReplay(room, session.playerId);
+    if (room.wizardMode !== on) {
+      room.wizardMode = on;
+      for (const s of room.seats) if (s && !s.isBot && s.playerId !== room.hostId) s.ready = false;
+      this.broadcastState(room);
+    }
+    return OK;
+  }
+
   setDifficulty(session, { difficulty }) {
     const room = this.roomOf(session);
     if (!room) return fail(ERR.NOT_IN_ROOM);
@@ -496,6 +513,7 @@ export class Lobby {
         roomCode: room.code,
         mode: room.mode,
         difficulty: room.difficulty,
+        wizardMode: room.wizardMode,
         modeId: modeIdFor(room.mode, room.difficulty),
         seats,
         seed,

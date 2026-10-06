@@ -243,6 +243,7 @@ export const C2S = {
   'room.leave': {},
   'room.ready': { ready: isBool },
   'room.setDifficulty': { difficulty: (v) => DIFFICULTIES.includes(v) },
+  'room.setWizardMode': { on: isBool },
   'room.addBot': {},
   'room.removeBot': { seat: (v) => isInt(v, 0, MAX_SEATS - 1) },
   'room.start': {},
@@ -256,7 +257,7 @@ export const C2S = {
   // the strategy highlighted in the draft screen (user playtest #4 item 4): a turn that runs out takes it while it is
   // free (Match.timeoutBand); absent / null clears it
   'g.bandFocus': { bandId: nullable(isId), $optional: ['bandId'] },
-  'g.buy': { slot: (v) => isInt(v, 0, 15) },
+  'g.buy': { slot: (v) => isInt(v, 0, 4095) },
   'g.refresh': {},
   'g.freeze': {},
   'g.levelUp': {},
@@ -268,7 +269,7 @@ export const C2S = {
   'g.equip': { itemUid: isUid, targetUid: isUid, replaceUid: nullable(isUid), $optional: ['replaceUid'] },
   'g.art': { itemUid: isUid, row: (v) => isInt(v, 0, GEO.ROWS - 1), col: (v) => isInt(v, 0, GEO.COLS - 1), dir: isDir, $optional: ['dir'] },
   'g.destroy': { uid: isUid },
-  'g.reward': { idx: (v) => isInt(v, 0, 5) },
+  'g.reward': { idx: (v) => isInt(v, 0, 4095) },
   'g.choice': { idx: (v) => isInt(v, 0, 5) },
   'g.ready': { ready: isBool },
   'g.emote': { id: (v) => EMOTES.includes(v) },

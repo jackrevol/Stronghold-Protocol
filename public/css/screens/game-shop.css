@@ -54,6 +54,26 @@
   background: linear-gradient(90deg, var(--mint-400), transparent 30%, transparent 70%, var(--mint-400));
 }
 .shopbar__cards { display: flex; gap: .08rem; }
+.wizard-catalog {
+  pointer-events: auto; display: flex; align-items: center; gap: .12rem; padding: .08rem .12rem;
+  max-width: calc(100vw - .6rem); flex-wrap: wrap; background: rgba(8, 11, 10, .96);
+  border: 1px solid var(--mint-700); color: var(--text-md); font-size: .16rem;
+}
+.wizard-catalog b { color: var(--mint-400); }
+.wizard-catalog select, .wizard-catalog input {
+  background: var(--bg-2, #17231e); color: var(--text-hi); border: 1px solid var(--line-3);
+  padding: .05rem .08rem; font-size: .16rem; min-width: 0;
+}
+.wizard-catalog input { width: 2rem; }
+.shopbar.is-wizard .shopbar__cards, .shopbar.is-wizard .shopbar__reward {
+  width: min(7.6rem, calc(100vw - 4.9rem)); min-width: 0;
+}
+.shopbar.is-wizard .shopbar__cards, .shopbar.is-wizard .shopbar__rwcards {
+  overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: .08rem;
+}
+.shopbar.is-wizard .shopbar__rwcards { min-width: 0; flex: 1; }
+.shopbar.is-wizard .scard, .shopbar.is-wizard .scard-wrap, .shopbar.is-wizard .rwtag { flex-shrink: 0; }
+.wizard-catalog__empty { align-self: center; padding: .2rem; color: var(--text-md); font-size: .18rem; }
 .shopbar__item { display: flex; gap: .08rem; padding-left: .08rem; border-left: 1px dashed var(--line-2); }
 .shopbar.is-frozen .shopbar__row { border-color: rgba(159, 212, 255, .5); border-top-color: var(--ice); }
 .shopbar.is-locked .scard:not(.scard--sold) { filter: saturate(.55) brightness(.8); }

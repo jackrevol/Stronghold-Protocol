@@ -162,7 +162,8 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
         // offers of the last prep expired at its end; the ones queued after it (SETTLE merges) wait for this prep
         if (offers0.some((o) => !ps.offers.includes(o))) fail(`${id}: a reward offer earned after the prep was dropped at the round start`);
         if (ps.shop.frozen) fail(`${id}: freeze toggle still on after the round start`);
-        const { chess, item } = gd.shopSlots(ps.shop.level);
+        const { item } = gd.shopSlots(ps.shop.level);
+        const chess = m.wizardMode ? gd.visibleChess.filter((id) => m.pool.has(id)).length : gd.shopSlots(ps.shop.level).chess;
         if (ps.shop.slots.length !== chess + item) fail(`${id}: ${ps.shop.slots.length} shop slots at level ${ps.shop.level}, expected ${chess}+${item}`);
         for (const k of kept) {
           if (!k.frozen || k.sold) { fail(`${id}: slot ${k.i} (${k.id}) survived combat unfrozen/sold`); continue; }
@@ -183,7 +184,8 @@ export function attachAudit(m, { invariants = true, limit = 200 } = {}) {
       const fx = hasSpendEffects(m, ps);
       const res = orig(slotIdx);
       if (res && res.ok) check('buy', () => {
-        if (!slot || !slot.sold) fail(`${ps.playerId}: bought slot ${slotIdx} is not marked sold`);
+        const repeatable = m.wizardMode && slot?.kind === 'chess';
+        if (!slot || slot.sold === repeatable) fail(`${ps.playerId}: bought slot ${slotIdx} has incorrect sold state`);
         if (ps.funds !== f0 - price && !fx && !hasSpendEffects(m, ps)) fail(`${ps.playerId}: buy paid ${f0 - ps.funds}, price ${price}`);
       });
       return res;

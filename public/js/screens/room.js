@@ -199,6 +199,7 @@ export function RoomScreen() {
   const addBot = () => run('add', () => net.request('room.addBot', {}));
   const removeBot = (seat) => run(`rm${seat}`, () => net.request('room.removeBot', { seat }));
   const setDifficulty = (difficulty) => run('diff', () => net.request('room.setDifficulty', { difficulty }));
+  const setWizardMode = () => run('wizard', () => net.request('room.setWizardMode', { on: !room.wizardMode }));
   const leave = async () => {
     if (inFlight.current) return;
     const othersHere = facts.humans.some((s) => s.playerId !== me.playerId);
@@ -243,6 +244,9 @@ export function RoomScreen() {
           <${MicroLabel}>${t('common.ping')}<//>
         </div>
         <${GuideButton} class="room-guide" variant="secondary" />
+        <${Button} variant="secondary" active=${!!room.wizardMode} disabled=${!facts.isHost || !online || !!busy}
+          aria-pressed=${String(!!room.wizardMode)} loading=${busy === 'wizard'} onClick=${setWizardMode} title=${t('wizard.hint')}>
+          ${t('wizard.mode')} · ${t(room.wizardMode ? 'common.on' : 'common.off')}<//>
       </div>
       <div class="topbar__center">
         <${MicroLabel} tone="mint">${coop ? 'ALLIANCE LOBBY' : 'SOLO SIMULATION'}<//>

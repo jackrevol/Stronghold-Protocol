@@ -556,6 +556,12 @@ export function makeCtx(m, ps, source, hook, ev = null) {
     offerItems: (ids, opts = {}) => !!ps.pushItemOffer(ids, { source: opts.source || source.key || 'effect', tier: opts.tier ?? null, label: opts.label ?? offerLabel(gd, source) }),
     setShopSlot: (i, slot) => {
       if (!Number.isInteger(i) || i < 0 || i >= ps.shop.slots.length) return false;
+      // Wizard operators are a permanent catalog: effects may change a price, but cannot remove or replace an entry.
+      const current = ps.shop.slots[i];
+      if (m.wizardMode && current?.kind === 'chess') {
+        if (slot == null) return true;
+        if (slot.kind === 'item' || slot.id !== current.id) return false;
+      }
       if (slot == null) { ps.shop.slots[i] = null; ps.dirty(); return true; }
       const kind = slot.kind === 'item' ? 'item' : 'chess';
       if (kind === 'chess' ? !gd.chess(slot.id) : !gd.item(slot.id)) return false;

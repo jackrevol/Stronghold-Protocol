@@ -19,6 +19,7 @@
 //                    `loadout` (DESIGN §16, optional): the human's operator loadout, already checked by the lobby
 //                    (shared/protocol.js checkLoadout); PlayerState re-checks it against opts.data and ignores it for bots.
 //   opts.seed        uint32                     master seed for all match randomness
+//   opts.wizardMode  boolean (optional, false)  all unbanned operators, repeat purchases, full-tier merge rewards
 //   opts.matchNo     integer ≥ 1 (optional)     the room's match number (lobby: room.matchCount + 1); with the seed it
 //                                              makes this match's battleIds unique within the room (DESIGN §14)
 //   opts.data        frozen game data (server/data.js getData()); may lack keys while data is generated
@@ -227,6 +228,7 @@ export class Match {
     this.roomCode = opts.roomCode ?? '----';
     this.mode = opts.mode === 'solo' ? 'solo' : 'coop';
     this.difficulty = opts.difficulty;
+    this.wizardMode = opts.wizardMode === true;
     this.modeId = opts.modeId || modeIdFor(this.mode, opts.difficulty);
     this.seed = (Number(opts.seed) >>> 0) || 1;
     this.log = opts.log || noopLog;
@@ -796,6 +798,7 @@ export class Match {
       serverNow: this.sched.now(),
       modeId: this.modeId,
       difficulty: this.difficulty,
+      wizardMode: this.wizardMode,
       stageId: this.stageId,
       factions: this.factions.slice(),
       disabledBonds: [...new Set([...this.disabledBonds, ...this.staticInactiveBonds])].sort(),

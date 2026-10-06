@@ -1,5 +1,15 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "wizard.mode": "巫师模式",
+  "wizard.hint": "可重复购买所有未禁用的任意阶干员，不受库存限制。晋升奖励可从对应阶的全部干员中选择。",
+  "wizard.tier": "阶级",
+  "wizard.allTiers": "全部阶级",
+  "wizard.tierValue": "{tier}阶",
+  "wizard.search": "搜索干员",
+  "wizard.count": "{count}名干员",
+  "wizard.reward": "从该阶全部{count}名干员中选择1名",
+  "wizard.scroll": "横向滚动",
+  "wizard.empty": "没有符合条件的干员",
   "lobby.ownerKey": "管理员密钥",
   "lobby.ownerOnlyHint": "仅服务器管理员可创建房间（含独立模拟）；其他玩家可使用同盟密钥加入。密钥不会保存在浏览器中。",
   "lobby.creationDisabled": "服务器已关闭新房间创建，仍可加入已有同盟。",

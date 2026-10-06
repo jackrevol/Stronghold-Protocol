@@ -613,7 +613,7 @@ describe('websocket lobby', () => {
     const b = await pool.player('B');
     await joinRoom(a, st.code);
     await joinRoom(b, st.code);
-    for (const msg of [{ t: 'room.setDifficulty', difficulty: 'HARD' }, { t: 'room.addBot' }, { t: 'room.removeBot', seat: 0 }, { t: 'room.start' }]) {
+    for (const msg of [{ t: 'room.setDifficulty', difficulty: 'HARD' }, { t: 'room.setWizardMode', on: true }, { t: 'room.addBot' }, { t: 'room.removeBot', seat: 0 }, { t: 'room.start' }]) {
       await expectError(a, msg, ERR.NOT_HOST);
     }
     await expectOk(a, { t: 'room.ready', ready: true });
@@ -621,6 +621,14 @@ describe('websocket lobby', () => {
     await expectOk(host, { t: 'room.setDifficulty', difficulty: 'ABYSS' });
     const changed = await a.waitFor('room.state', (s) => s.difficulty === 'ABYSS');
     assert.equal(seatOf(changed, a.id).ready, false, 'difficulty change resets ready');
+    await expectOk(a, { t: 'room.ready', ready: true });
+    await host.waitFor('room.state', (s) => seatOf(s, a.id)?.ready);
+    await expectOk(host, { t: 'room.setWizardMode', on: true });
+    const wizardState = await a.waitFor('room.state', (s) => s.wizardMode === true);
+    assert.equal(seatOf(wizardState, a.id).ready, false, 'wizard mode change resets ready');
+    await expectError(host, { t: 'room.setWizardMode', on: 'true' }, ERR.BAD_MSG);
+    await expectOk(host, { t: 'room.setWizardMode', on: false });
+    await a.waitFor('room.state', (s) => s.wizardMode === false);
 
     await expectOk(host, { t: 'room.leave' });
     const migrated = await a.waitFor('room.state', (s) => s.hostId !== host.id);
@@ -702,6 +710,7 @@ describe('websocket lobby', () => {
     await expectError(host, { t: 'room.start' }, ERR.ROOM_STARTED);
     await expectError(host, { t: 'room.addBot' }, ERR.ROOM_STARTED);
     await expectError(host, { t: 'room.setDifficulty', difficulty: 'FUNNY' }, ERR.ROOM_STARTED);
+    await expectError(host, { t: 'room.setWizardMode', on: true }, ERR.ROOM_STARTED);
     await expectError(host, { t: 'room.create', mode: 'coop', difficulty: 'FUNNY' }, ERR.ROOM_STARTED);
     const outsider = await pool.player('Outsider');
     await expectError(outsider, { t: 'room.join', code: st.code }, ERR.ROOM_STARTED);

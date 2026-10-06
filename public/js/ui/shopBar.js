@@ -25,6 +25,7 @@ import { Img, BondGlyph, CoinGlyph, GIcon, RichText } from './gameComponents.js'
 import { priceTone, mergeProgress, mergeTarget, shopBlockReason, chessLoadout, offerHeader, briefingBondTip } from './gameLogic.js';
 import { chessPortraitUrl, itemIconUrl, profIconUrl, uiUrl, skillIconUrl, skillRecordIconUrl, moduleTypeIconUrl } from './assetUrls.js';
 import { data } from '../data.js';
+import { t } from '../i18n.js';
 
 const cx = (...p) => p.flat().filter(Boolean).join(' ');
 
@@ -259,8 +260,16 @@ export function RewardCards({ offer, priv, editable, onPick, onDetail, onLater, 
 export function ShopBar({ priv, editable, collapsed, onCollapse, onBuy, onLevel, onRefresh, onFreeze, onDetail, onDetailClose, onRefuse, barRef,
   reward = null, onReward, onRewardLater, onArm = null, offBonds = null }) {
   const shop = priv?.shop || {};
+  const [catalogTier, setCatalogTier] = useState(1);
+  const [catalogQuery, setCatalogQuery] = useState('');
   const slots = Array.isArray(shop.slots) ? shop.slots : [];
-  const chessSlots = slots.map((s, i) => ({ s, i })).filter(({ s }) => !s || s.kind !== 'item');
+  const chessSlots = slots.map((s, i) => ({ s, i })).filter(({ s }) => {
+    if (s?.kind === 'item') return false;
+    if (!shop.wizardMode) return true;
+    const c = data.lookup('chess', s?.id);
+    const query = catalogQuery.trim().toLocaleLowerCase();
+    return c && (!catalogTier || c.tier === catalogTier) && (!query || `${c.name} ${s.id}`.toLocaleLowerCase().includes(query));
+  });
   const itemSlots = slots.map((s, i) => ({ s, i })).filter(({ s }) => s && s.kind === 'item');
   const frozen = !!shop.frozen;
   const funds = Number(priv?.funds) || 0;
@@ -307,7 +316,19 @@ export function ShopBar({ priv, editable, collapsed, onCollapse, onBuy, onLevel,
     </div>`;
   }
 
-  return html`<section class=${cx('shopbar', frozen && 'is-frozen', !editable && 'is-locked', showReward && 'has-reward', armed && 'has-armed')} ref=${barRef} aria-label="调度中心">
+  return html`<section class=${cx('shopbar', shop.wizardMode && 'is-wizard', frozen && 'is-frozen', !editable && 'is-locked', showReward && 'has-reward', armed && 'has-armed')} ref=${barRef} aria-label="调度中心">
+    ${shop.wizardMode ? html`<div class="wizard-catalog">
+      <b>${t('wizard.mode')}</b>
+      ${showReward ? html`<span>${t('wizard.reward', { count: reward.slots.length })}</span>` : html`
+        <select aria-label=${t('wizard.tier')} value=${catalogTier} onChange=${(e) => { setCatalogTier(Number(e.currentTarget.value)); setArmed(null); }}>
+          <option value="0">${t('wizard.allTiers')}</option>
+          ${[1, 2, 3, 4, 5, 6].map((tier) => html`<option key=${tier} value=${tier}>${t('wizard.tierValue', { tier })}</option>`)}
+        </select>
+        <input type="search" aria-label=${t('wizard.search')} placeholder=${t('wizard.search')} value=${catalogQuery}
+          onInput=${(e) => { setCatalogQuery(e.currentTarget.value); setArmed(null); }} />
+        <span>${t('wizard.count', { count: chessSlots.length })}</span>`}
+      <span>${t('wizard.scroll')}</span>
+    </div>` : null}
     <div class="shopbar__tools">
       <span class="shopbar__remain">剩余可放置角色：<b class=${cx('num', remaining === 0 && 't-orange')}>${remaining}</b></span>
       <button type="button" class=${cx('toolbtn', 'toolbtn--ice', frozen && 'is-on')} disabled=${!!frzReason} onClick=${onFreeze}
@@ -333,6 +354,7 @@ export function ShopBar({ priv, editable, collapsed, onCollapse, onBuy, onLevel,
           return html`<${ChessCard} key=${`c${i}:${s.id}`} slot=${s} idx=${i} priv=${priv} frozen=${frozen} onBuy=${onBuy} onDetail=${onDetail} offBonds=${offBonds}
               reason=${reason} armed=${armed === armKey('c', i, s)} onTap=${editable ? (idx) => tapCard('c', idx, s, 'chess', reason, onBuy) : null} />`;
         })}
+        ${shop.wizardMode && !chessSlots.length ? html`<span class="wizard-catalog__empty">${t('wizard.empty')}</span>` : null}
       </div>`}
       <div class="shopbar__item">
         ${itemSlots.length

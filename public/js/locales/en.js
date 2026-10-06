@@ -1,5 +1,15 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "wizard.mode": "Wizard mode",
+  "wizard.hint": "Buy any unbanned operator of any tier repeatedly without stock limits. Merge rewards offer every operator of the reward tier.",
+  "wizard.tier": "Tier",
+  "wizard.allTiers": "All tiers",
+  "wizard.tierValue": "Tier {tier}",
+  "wizard.search": "Search operators",
+  "wizard.count": "{count} operators",
+  "wizard.reward": "Choose 1 of {count} operators of this tier",
+  "wizard.scroll": "Scroll sideways",
+  "wizard.empty": "No matching operators",
   "lobby.ownerKey": "Server owner key",
   "lobby.ownerOnlyHint": "Only the server owner can create rooms, including solo games. Others can join using a room code. The key is not saved in your browser.",
   "lobby.creationDisabled": "New room creation is disabled. You can still join an existing room.",

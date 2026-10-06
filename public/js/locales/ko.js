@@ -1,5 +1,15 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "wizard.mode": "위자드 모드",
+  "wizard.hint": "밴되지 않은 모든 등급의 오퍼레이터를 재고 제한 없이 중복 구매합니다. 합성 발견은 해당 등급 전체에서 선택합니다.",
+  "wizard.tier": "등급",
+  "wizard.allTiers": "모든 등급",
+  "wizard.tierValue": "{tier}등급",
+  "wizard.search": "오퍼레이터 검색",
+  "wizard.count": "{count}명",
+  "wizard.reward": "해당 등급 {count}명 중 1명 선택",
+  "wizard.scroll": "좌우로 스크롤",
+  "wizard.empty": "검색 결과가 없습니다",
   "lobby.ownerKey": "서버 관리자 키",
   "lobby.ownerOnlyHint": "서버 관리자만 방을 만들 수 있습니다(1인 모드 포함). 다른 플레이어는 방 코드로 참가할 수 있습니다. 키는 브라우저에 저장되지 않습니다.",
   "lobby.creationDisabled": "새 방 생성이 비활성화되어 있습니다. 기존 방에는 참가할 수 있습니다.",

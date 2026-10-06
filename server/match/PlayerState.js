@@ -484,7 +484,7 @@ export class PlayerState {
     if (!rec) return null;
     const base = this.gd.baseIdOf(chessId);
     const need = rec.isGolden ? this.gd.goldenCopies : 1;
-    const taken = fromPool ? this.m.pool.take(base, need) : 0;
+    const taken = fromPool && !this.m.wizardMode ? this.m.pool.take(base, need) : 0;
     const piece = this.newPiece('chess', chessId, { poolCopies: taken });
     this.round.gainedChess++;
     let owned = piece;
@@ -655,6 +655,9 @@ export class PlayerState {
     const t = Number.isInteger(tier) ? tier : Math.min(this.shop.level + ro.tierOffset, ro.maxTier);
     // an offer never shows one operator twice, whoever built the list (user playtest #6 item 19)
     let list = Array.isArray(ids) ? [...new Set(ids)].filter((id) => this.gd.chess(id)) : null;
+    const wizardMerge = this.m.wizardMode && source === 'merge';
+    if (wizardMerge) list = this.gd.visibleChess.filter((id) => this.m.pool.has(id) && this.gd.tierOf(id) === t);
+    else if (this.m.wizardMode && list) list = list.filter((id) => !this.m.bannedChess.includes(this.gd.baseIdOf(id)));
     if (!list) {
       list = [];
       const fresh = (id) => !list.includes(id);
@@ -665,7 +668,7 @@ export class PlayerState {
       }
     }
     if (!list.length) return null;
-    const offer = { tier: t, source, label: typeof label === 'string' && label ? label : null, slots: list.slice(0, MAX_OFFER_SLOTS).map((id) => ({ kind: 'chess', id, price: ro.price, sold: false })) };
+    const offer = { tier: t, source, label: typeof label === 'string' && label ? label : null, slots: (wizardMerge ? list : list.slice(0, MAX_OFFER_SLOTS)).map((id) => ({ kind: 'chess', id, price: ro.price, sold: false })) };
     this.offers.push(offer);
     this.dirty();
     return offer;
@@ -843,6 +846,24 @@ export class PlayerState {
    * (manual refresh). Slot counts follow the current level.
    */
   rollShop({ keepFrozen = false } = {}) {
+    if (this.m.wizardMode) {
+      const ids = this.gd.visibleChess.filter((id) => this.m.pool.has(id));
+      const oldChess = new Map(this.shop.slots.filter((s) => s?.kind === 'chess').map((s) => [s.id, s]));
+      const oldItems = this.shop.slots.filter((s) => s?.kind === 'item');
+      const { item: nItem } = this.gd.shopSlots(this.shop.level);
+      this.shop.slots = ids.map((id) => {
+        const old = oldChess.get(id);
+        return keepFrozen && old?.frozen && !old.sold ? { ...old } : { kind: 'chess', id, basePrice: this.gd.chessPrice(id), sold: false, frozen: this.shop.frozen };
+      });
+      for (let i = 0; i < nItem; i++) {
+        const old = oldItems[i];
+        this.shop.slots.push(keepFrozen && old?.frozen && !old.sold ? { ...old } : this._rollItemSlot());
+      }
+      this.shop.layout = { chess: ids.length, item: nItem };
+      for (const s of this.shop.slots) if (s) s.frozen = this.shop.frozen;
+      this.dirty();
+      return;
+    }
     const { chess: nChess, item: nItem } = this.gd.shopSlots(this.shop.level);
     const old = this.shop.slots;
     const layout = this.shop.layout || { chess: old.length, item: 0 };
@@ -893,10 +914,11 @@ export class PlayerState {
       if (!rec) return fail(ERR.BAD_TARGET);
       const base = this.gd.baseIdOf(slot.id);
       const need = rec.isGolden ? this.gd.goldenCopies : 1;
-      if (this.m.pool.has(base) && this.m.pool.left(base) < need) return fail(ERR.SOLD_OUT);
+      if (this.m.wizardMode && !this.m.pool.has(slot.id)) return fail(ERR.BAD_TARGET);
+      if (!this.m.wizardMode && this.m.pool.has(base) && this.m.pool.left(base) < need) return fail(ERR.SOLD_OUT);
       if (handFull && !this.completesChessMerge(slot.id)) return fail(ERR.HAND_FULL);
       this.spend(price);
-      slot.sold = true;
+      slot.sold = !this.m.wizardMode;
       piece = this.acquireChess(slot.id, { source: 'buy' });
     } else {
       if (!this.gd.item(slot.id)) return fail(ERR.BAD_TARGET);
@@ -1397,7 +1419,8 @@ export class PlayerState {
       if (!rec) return fail(ERR.BAD_TARGET);
       const base = this.gd.baseIdOf(slot.id);
       const need = rec.isGolden ? this.gd.goldenCopies : 1;
-      if (this.m.pool.has(base) && this.m.pool.left(base) < need) return fail(ERR.SOLD_OUT);
+      if (this.m.wizardMode && this.m.bannedChess.includes(base)) return fail(ERR.BAD_TARGET);
+      if (!this.m.wizardMode && this.m.pool.has(base) && this.m.pool.left(base) < need) return fail(ERR.SOLD_OUT);
       if (handFull && !this.completesChessMerge(slot.id)) return fail(ERR.HAND_FULL);
     }
     const price = Number.isFinite(slot.price) && slot.price > 0 ? Math.trunc(slot.price) : 0;
@@ -1622,6 +1645,7 @@ export class PlayerState {
       ready: this.ready,
       canReady: this.alive && this.tempEmpty && this.m.phase === PHASE.PREP,
       shop: {
+        wizardMode: this.m.wizardMode,
         level: this.shop.level,
         maxLevel: this.gd.maxShopLevel,
         upgradePrice: this.shop.level >= this.gd.maxShopLevel ? 0 : this.shop.upgradePrice,

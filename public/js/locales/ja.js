@@ -1,5 +1,15 @@
 // UI messages. Keep keys and {placeholders} in sync across languages.
 export default {
+  "wizard.mode": "ウィザードモード",
+  "wizard.hint": "禁止されていない全ランクのオペレーターを在庫制限なく繰り返し購入できます。合成報酬は対象ランクの全員から選択できます。",
+  "wizard.tier": "ランク",
+  "wizard.allTiers": "全ランク",
+  "wizard.tierValue": "ランク{tier}",
+  "wizard.search": "オペレーター検索",
+  "wizard.count": "{count}人",
+  "wizard.reward": "このランクの{count}人から1人選択",
+  "wizard.scroll": "横にスクロール",
+  "wizard.empty": "該当するオペレーターがいません",
   "lobby.ownerKey": "サーバー管理者キー",
   "lobby.ownerOnlyHint": "ルーム作成（ソロを含む）はサーバー管理者のみ可能です。他のプレイヤーはルームコードで参加できます。キーはブラウザーに保存されません。",
   "lobby.creationDisabled": "新しいルームの作成は無効です。既存のルームには参加できます。",
