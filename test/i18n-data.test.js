@@ -50,6 +50,54 @@ test('overlay records: a leaf whose Chinese source changed stays Chinese (no sta
   assert.deepEqual(f.value, { a: { name: 'A' }, b: { name: '乙' } }, 'records missing from the data are skipped');
 });
 
+test('community game texts correct exact official strings, fill gaps, and keep other numbers on the official template', () => {
+  const zh = [{ chars: { char_x: { name: '测试员', description: '攻击力<@ba.vup>+{atk:0%}</>' } } }];
+  const ko = [{ chars: { char_x: { name: '공식 오타', description: '공격력 <@ba.vup>+{atk:0%}</>' } } }];
+  const data = { chess: {
+    x: { name: '测试员', trait: { descRaw: '攻击力<@ba.vup>+80%</>', desc: '攻击力+80%' } },
+    y: { name: '新干员', trait: { descRaw: '攻击力<@ba.vup>+90%</>', desc: '攻击力+90%' } },
+  } };
+  const community = { _meta: { source: 'community test' }, 测试员: '테스터', 新干员: '새 오퍼레이터',
+    '攻击力<@ba.vup>+80%</>': '공격력이 <@ba.vup>+80%</>',
+  };
+  const { overlay, report } = buildOverlay({ zh, en: ko, data, lang: 'ko', fallback: { community } });
+  const result = applyFileOverlay(data.chess, overlay.files.chess);
+  assert.equal(result.stale, 0);
+  assert.equal(result.value.x.name, '테스터', 'the community correction precedes the official exact match');
+  assert.equal(result.value.y.name, '새 오퍼레이터', 'the supplement covers a name absent from the official client');
+  assert.deepEqual(result.value.x.trait, { descRaw: '공격력이 <@ba.vup>+80%</>', desc: '공격력이 +80%' });
+  assert.deepEqual(result.value.y.trait, { descRaw: '공격력 <@ba.vup>+90%</>', desc: '공격력 +90%' }, 'an 80% correction cannot replace a 90% text');
+  assert.equal(overlay.names['测试员'], '테스터');
+  assert.equal(overlay.names['新干员'], '새 오퍼레이터');
+  assert.equal(report.totals.community, 4);
+  assert.equal(report.totals.official, 2);
+  assert.deepEqual(overlay.meta.community, community._meta);
+  assert.equal(data.chess.x.name, '测试员', 'canonical data stays in its source language');
+});
+
+test('Korean community overlay: every translated leaf is fresh, and supplemental module, item and stage texts apply', () => {
+  const overlay = readJson('data/i18n/ko.json');
+  assert.equal(overlay.meta.community.revision, 'f0fd8495039330e9226026d953961e240fdbe693');
+  assert.equal(overlay.meta.coverage.items.pct, 100);
+  assert.equal(overlay.meta.coverage.config.pct, 100);
+  for (const [file, records] of Object.entries(overlay.files)) {
+    const base = readJson(`data/${file}.json`);
+    const result = applyFileOverlay(base, records);
+    let leaves = 0;
+    for (const record of Object.values(records)) walkOverlay(record, () => { leaves++; });
+    assert.equal(result.stale, 0, `${file}: stale Korean text`);
+    assert.equal(result.applied, leaves, `${file}: every Korean leaf applies`);
+  }
+  const config = applyFileOverlay(readJson('data/config.json'), overlay.files.config).value;
+  assert.equal(config.seasonName, '위수 협의: 맹약');
+  const chess = applyFileOverlay(readJson('data/chess.json'), overlay.files.chess).value;
+  const module = chess.chess_char_6_19_b.modules[1].traitOverride;
+  assert.equal(module.moduleDesc, '공격 시 적의 방어력 70 무시');
+  assert.equal(richTextPlain(module.moduleDescRaw), module.moduleDesc);
+  const stages = applyFileOverlay(readJson('data/stages.json'), overlay.files.stages).value;
+  assert.ok(Object.values(stages).some((s) => s.name === '전장 #05(하반기) 오리지늄 기류 발생 장치'));
+});
+
 test('build-i18n matching: exact, blackboard templates, plain from raw, composites, fallback order, notes, names', () => {
   const zh = [{ chars: { char_x: { name: '测试员', description: '攻击造成<@ba.kw>法术伤害</>', skill: { levels: [{ name: '强攻', description: '攻击力<@ba.vup>+{atk:0%}</>，持续{duration}秒' }] } } } }];
   const en = [{ chars: { char_x: { name: 'Tester', description: 'Attacks deal <@ba.kw>Arts damage</>', skill: { levels: [{ name: 'Assault', description: 'ATK <@ba.vup>+{atk:0%}</> for {duration} seconds' }] } } } }];

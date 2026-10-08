@@ -158,6 +158,10 @@ function applyDocument(lang) {
   doc.documentElement.dataset.lang = lang;
   doc.documentElement.dataset.script = scriptOf(t('卫戍协议'));
   doc.title = t('卫戍协议：盟约 · STRONGHOLD PROTOCOL');
+  const rotateTitle = doc.querySelector('.rotate-hint__title');
+  if (rotateTitle) rotateTitle.textContent = t('请将设备横屏');
+  const rotateDescription = doc.querySelector('.rotate-hint__description');
+  if (rotateDescription) rotateDescription.textContent = t('卫戍协议：盟约 需要横屏显示以获得完整体验');
 }
 
 // `{ dn }` params and tName(): Chinese game-data names → the current language (data/i18n/<lang>.json names)

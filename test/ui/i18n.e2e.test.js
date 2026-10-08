@@ -179,4 +179,43 @@ describe('language switch on the title screen', { skip: !ENABLED && 'set SP_E2E=
     assert.deepEqual(problems, []);
     await page.close();
   });
+  test('Korean community translations: lobby terminology, supplemental game data, portrait reminder and switching back', async () => {
+    const page = await browser.newPage();
+    const problems = [];
+    page.on('pageerror', (e) => problems.push(e.message));
+    await page.setViewport({ width: 1600, height: 900 });
+    await page.goto(`${base}/?lang=ko`, { waitUntil: 'networkidle0' });
+    await page.waitForFunction(() => globalThis.__SP__?.data?.locale() === 'ko');
+    assert.equal(await text(page, '.rotate-hint__title'), '기기를 가로로 돌려 주세요');
+    assert.equal(await page.$eval('body', (el) => getComputedStyle(el).wordBreak), 'keep-all');
+    const translations = await page.evaluate(async () => {
+      const { t, tc } = await import('/shared/i18n.js');
+      const { data } = await import('/js/data.js');
+      await data.load('stages');
+      return {
+        code: t('同盟密钥'), create: t('创建同盟'), join: t('加入同盟'),
+        codeLength: t('同盟密钥为 {ROOM_CODE_LEN} 位字母或数字', { ROOM_CODE_LEN: 6 }),
+        off: tc('toggle', '关闭'), close: t('关闭'),
+        season: data.get('config').seasonName,
+        stages: data.list('stages').map((s) => s.name),
+      };
+    });
+    assert.deepEqual([translations.code, translations.create, translations.join], ['초대 코드', '방 만들기', '방 참가']);
+    assert.equal(translations.codeLength, '초대 코드는 영문자·숫자 6자리입니다');
+    assert.deepEqual([translations.off, translations.close], ['꺼짐', '닫기']);
+    assert.equal(translations.season, '위수 협의: 맹약');
+    assert.ok(translations.stages.includes('전장 #05(하반기) 오리지늄 기류 발생 장치'));
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.waitForFunction(() => globalThis.__SP__?.data?.locale() === 'ko');
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.rotate-hint')).display === 'grid');
+    assert.equal(await page.$eval('.rotate-hint', (el) => getComputedStyle(el).display), 'grid');
+    assert.match(await text(page, '.rotate-hint__description'), /위수 협의: 맹약/);
+    await page.setViewport({ width: 1600, height: 900, isMobile: true, hasTouch: true, isLandscape: true });
+    await pick(page, 'zh');
+    await page.waitForFunction(() => document.documentElement.lang === 'zh-CN');
+    assert.equal(await text(page, '.rotate-hint__title'), '请将设备横屏');
+    assert.equal(await page.$eval('body', (el) => getComputedStyle(el).wordBreak), 'normal');
+    assert.deepEqual(problems, []);
+    await page.close();
+  });
 });

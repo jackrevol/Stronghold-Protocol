@@ -1066,5 +1066,7 @@
   "管理员密钥": "Server owner key",
   "仅服务器管理员可创建房间（含独立模拟）；其他玩家可使用同盟密钥加入。密钥不会保存在浏览器中。": "Only the server owner can create rooms, including solo games. Others can join using a room code. The key is not saved in your browser.",
   "服务器已关闭新房间创建，仍可加入已有同盟。": "New room creation is disabled. You can still join an existing room.",
-  "创建房间未获授权：请检查管理员密钥或联系服务器管理员": "Room creation denied. Check the owner key or contact the server owner."
+  "创建房间未获授权：请检查管理员密钥或联系服务器管理员": "Room creation denied. Check the owner key or contact the server owner.",
+  "请将设备横屏": "Please rotate your device to landscape",
+  "卫戍协议：盟约 需要横屏显示以获得完整体验": "Stronghold Protocol: Alliance is best experienced in landscape orientation"
 }

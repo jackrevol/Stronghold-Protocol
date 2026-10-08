@@ -18,6 +18,7 @@
 //   5. what the official EN data lacks falls back to tools/i18n/fallback-remake.json (the remake's own strings),
 //      tools/i18n/fallback-pr70.json (PR #70's translations by @YuriRestia, reused with credit) and the UI table
 //      public/i18n/en.json (a data text that is also a UI msgid); anything else stays Chinese.
+//   Reviewed community corrections in tools/i18n/community-<lang>.json take precedence on exact Chinese matches.
 //   Ties between several English sources prefer the one whose path shares the record's ids, then the most frequent.
 //   Rich-text tags and placeholders of the official EN texts are the same as in zh_CN, so the client's rich-text
 //   formatting (ui/richText.js) works unchanged; `desc` / `text` (plain) are the stripped `descRaw` / `textRaw`.
@@ -464,10 +465,11 @@ class Translator {
    * @param {PairIndex} index
    * @param {{ name: string, map: Map<string, string> }[]} fallbacks in order of preference
    */
-  constructor(index, fallbacks, { composites = true } = {}) {
+  constructor(index, fallbacks, { composites = true, community = new Map() } = {}) {
     this.index = index;
     this.fallbacks = fallbacks;
     this.composites = composites;
+    this.community = community;
   }
 
   /**
@@ -476,6 +478,8 @@ class Translator {
    * @returns {{ en: string, how: string } | null}
    */
   translate(zh, ctx) {
+    const correction = this.community.get(zh);
+    if (correction) return { en: correction, how: 'community' };
     const ex = this.index.exact.get(zh);
     if (ex) return { en: bestVariant(ex, ctx).en, how: 'exact' };
     // a plain text (build-data strips the markup of `desc`, `text`, card / device descriptions) against stripped sources
@@ -626,7 +630,7 @@ function translateScalar(file, id, text, tr, stats, samples) {
 
 class Stats {
   constructor() { this.kinds = {}; this.missing = new Map(); }
-  row(kind) { return this.kinds[kind] || (this.kinds[kind] = { texts: 0, exact: 0, template: 0, composite: 0, remake: 0, pr70: 0, ui: 0, dict: 0, missing: 0, notes: 0 }); }
+  row(kind) { return this.kinds[kind] || (this.kinds[kind] = { texts: 0, exact: 0, template: 0, composite: 0, remake: 0, pr70: 0, ui: 0, dict: 0, community: 0, missing: 0, notes: 0 }); }
   hit(kind, how) { const r = this.row(kind); r.texts++; r[how]++; }
   miss(kind, text) {
     const r = this.row(kind);
@@ -645,7 +649,7 @@ const dictMap = (d, untranslated = (zh, t) => hasCjk(t)) => new Map(Object.entri
 
 /**
  * Build the overlay. Exported for tests (they pass in-memory tables).
- * @param {{ zh: object[], en: object[], data: Record<string, any>, fallback?: { remake?: object, pr70?: object, ui?: object }, source?: object }} input
+ * @param {{ zh: object[], en: object[], data: Record<string, any>, fallback?: { remake?: object, pr70?: object, ui?: object, dict?: object, community?: object }, source?: object, lang?: string }} input
  *   zh / en: the picked sub-trees of TABLES, in order
  */
 export function buildOverlay({ zh, en, data, fallback = {}, source = null, lang = 'en' }) {
@@ -657,7 +661,7 @@ export function buildOverlay({ zh, en, data, fallback = {}, source = null, lang 
     { name: 'remake', map: dictMap(fallback.remake, untranslated) },
     { name: 'pr70', map: dictMap(fallback.pr70, untranslated) },
     { name: 'ui', map: dictMap(fallback.ui, untranslated) },
-  ], { composites: LANG_SOURCES[lang]?.composite ?? false });
+  ], { composites: LANG_SOURCES[lang]?.composite ?? false, community: dictMap(fallback.community, untranslated) });
   const stats = new Stats();
   const samples = {};
   const files = {};
@@ -693,11 +697,12 @@ export function buildOverlay({ zh, en, data, fallback = {}, source = null, lang 
     if (distinct.length > 1) nameConflicts.push(`${zhName} → ${distinct.join(' | ')}`);
   }
   const coverage = {};
-  let total = 0, translated = 0, official = 0;
+  let total = 0, translated = 0, official = 0, community = 0;
   for (const [kind, r] of Object.entries(stats.kinds).sort()) {
-    const ok = r.exact + r.template + r.composite + r.remake + r.pr70 + r.ui + r.dict;
+    const ok = r.exact + r.template + r.composite + r.remake + r.pr70 + r.ui + r.dict + r.community;
     coverage[kind] = { ...r, translated: ok, pct: r.texts ? Math.round((ok / r.texts) * 1000) / 10 : 100 };
     total += r.texts; translated += ok; official += r.exact + r.template + r.composite;
+    community += r.community;
   }
   const overlay = {
     version: OVERLAY_VERSION,
@@ -708,8 +713,9 @@ export function buildOverlay({ zh, en, data, fallback = {}, source = null, lang 
       fallback: lang === 'en'
         ? 'tools/i18n/fallback-remake.json (the remake), tools/i18n/fallback-pr70.json (PR #70 by @YuriRestia), public/i18n/en.json'
         : `public/i18n/${lang}.json (the pack's UI strings)`,
-      coverage: Object.fromEntries(Object.entries(coverage).map(([k, v]) => [k, { texts: v.texts, translated: v.translated, official: v.exact + v.template + v.composite, pct: v.pct }])),
-      totals: { texts: total, translated, official, pct: total ? Math.round((translated / total) * 1000) / 10 : 100 },
+      ...(community ? { community: fallback.community?._meta || null } : {}),
+      coverage: Object.fromEntries(Object.entries(coverage).map(([k, v]) => [k, { texts: v.texts, translated: v.translated, official: v.exact + v.template + v.composite, ...(v.community ? { community: v.community } : {}), pct: v.pct }])),
+      totals: { texts: total, translated, official, ...(community ? { community } : {}), pct: total ? Math.round((translated / total) * 1000) / 10 : 100 },
     },
     names,
     files,
@@ -757,6 +763,7 @@ async function main() {
     pr70: await readDict(join(ROOT, 'tools', 'i18n', 'fallback-pr70.json')),
     ui: await readDict(join(ROOT, 'public', 'i18n', 'en.json')),
   } : { ui: await readDict(join(ROOT, 'public', 'i18n', `${opts.lang}.json`)) };
+  fallback.community = await readDict(join(ROOT, 'tools', 'i18n', `community-${opts.lang}.json`));
   if (opts.dict) fallback.dict = JSON.parse(await readFile(opts.dict, 'utf8'));
   const { overlay, report } = buildOverlay({ zh, en, data, fallback, lang: opts.lang, source: client ? { id: opts.source, label: src.label, home: src.home, season: seasonEn } : { id: 'dict', label: src.label } });
 
@@ -774,7 +781,7 @@ async function main() {
   if (client) log(`  season in the ${opts.lang} build: ${seasonEn}${version ? ` · ${version.replace(/\s+/g, ' ')}` : ''}`);
   log(`  ${report.pairs} zh→${opts.lang} source pairs; coverage per kind (translated / texts):`);
   for (const [kind, c] of Object.entries(report.coverage)) {
-    const fb = [c.remake && `remake ${c.remake}`, c.pr70 && `PR #70 ${c.pr70}`, c.ui && `UI ${c.ui}`, c.dict && `dictionary ${c.dict}`].filter(Boolean).join(' · ');
+    const fb = [c.remake && `remake ${c.remake}`, c.pr70 && `PR #70 ${c.pr70}`, c.ui && `UI ${c.ui}`, c.dict && `dictionary ${c.dict}`, c.community && `community ${c.community}`].filter(Boolean).join(' · ');
     log(`    ${kind.padEnd(10)} ${String(c.translated).padStart(5)} / ${String(c.texts).padEnd(5)} ${String(c.pct).padStart(5)} %   official ${c.exact + c.template + c.composite} (exact ${c.exact} · template ${c.template} · composite ${c.composite})${fb ? ` · ${fb}` : ''}${c.notes ? ` · notes skipped ${c.notes}` : ''}`);
   }
   log(`  total ${report.totals.translated} / ${report.totals.texts} (${report.totals.pct} %), official ${report.totals.official}; ${Object.keys(overlay.names).length} names (${report.nameConflicts.length} with several ${opts.lang} forms)`);

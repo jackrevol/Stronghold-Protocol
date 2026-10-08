@@ -35,7 +35,7 @@ at all, this project grants an additional permission under GPL-3.0 section 7 for
 |---|---|---|
 | Bender (Jovanny Lemonad / Oleg Zhuravlev, Gladkikh Ivan) | the authors' free-font terms (not GPL) | downloaded by `tools/fetch-assets.mjs` from [TimWangZi/The-font-of-Arknights](https://github.com/TimWangZi/The-font-of-Arknights) into `public/fonts/` (included in the release bundle) |
 | Novecento Wide (Jan Tonellato / Synthview) | the authors' free-font terms (not GPL) | as above |
-| Noto Sans SC, Oxanium, Rajdhani | SIL Open Font License 1.1 | loaded by the browser from Google Fonts at runtime; not distributed |
+| Noto Sans SC, Noto Sans KR, Oxanium, Rajdhani | SIL Open Font License 1.1 | loaded by the browser from Google Fonts at runtime; not distributed |
 
 ## Game data, art and audio
 
@@ -63,6 +63,11 @@ under GPL-3.0-or-later (docs/I18N.md). PR #70 named ak-spa-database.pages.dev an
 it took from ak-spa-database.pages.dev (no licence) are excluded; arknights.wiki.gg is CC BY-SA 4.0, which may be combined
 into a GPL-3.0 work (the one-way compatibility Creative Commons declared) — thanks to its contributors. Official game
 terms and names in those files remain © Hypergryph / Yostar.
+
+Korean UI strings (`public/i18n/ko.json`) and supplemental game translations (`tools/i18n/community-ko.json`) are
+adapted from [Gyeongdeock-Seo/Stronghold-Protocol_Ko](https://github.com/Gyeongdeock-Seo/Stronghold-Protocol_Ko), revision
+`f0fd8495039330e9226026d953961e240fdbe693`, including terminology corrections by **mingtochess** (PR #4), under
+GPL-3.0-or-later. Official Korean game terms and texts remain © Hypergryph / Yostar.
 
 ---
 
