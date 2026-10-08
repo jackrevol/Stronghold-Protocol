@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { DATA_SHIM_JS } from '../server/index.js';
 import { AUDIO_EXTS } from '../shared/media.js';
+import { writePackIndex } from './packs.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'dist');
@@ -27,6 +28,7 @@ await cp(path.join(root, 'server/sim'), path.join(out, 'sim'), {
     && (!path.extname(file) || file.endsWith('.js')),
 });
 await writeFile(path.join(out, 'data.js'), DATA_SHIM_JS);
+writePackIndex(root, path.join(out, 'packs/index.json'));
 try { await access(path.join(out, 'data/local-assets.json')); }
 catch { await writeFile(path.join(out, 'data/local-assets.json'), JSON.stringify({ version: 1, source: 'none', count: 0, groups: {} })); }
 

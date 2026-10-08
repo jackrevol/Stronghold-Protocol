@@ -34,13 +34,13 @@ test('owner key input creates a room; guest joins without learning or storing th
     await owner.type('.create-box input[type=password]', key);
     await owner.click('.create-box .btn--primary');
     await owner.waitForSelector('.room-screen');
-    const code = await owner.evaluate(() => __SP__.store.get().room.code);
+    const code = await owner.evaluate(() => globalThis.__SP__.store.get().room.code);
     const guest = await enter('Guest');
     assert.equal(await guest.$eval('.create-box input', (el) => el.value), '');
     await guest.type('.join-row input', code);
     await guest.keyboard.press('Enter');
     await guest.waitForSelector('.room-screen');
-    assert.equal(await guest.evaluate(() => __SP__.store.get().room.code), code);
+    assert.equal(await guest.evaluate(() => globalThis.__SP__.store.get().room.code), code);
     for (const page of [owner, guest]) {
       const storage = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
       assert.ok(!storage.includes(key));

@@ -42,23 +42,28 @@ test('attack-SP ammo skill: no SP from any ammo shot, including the last one', (
   assert.equal(u.skill.sp, 1);
 });
 
-test('unite carryState {sp: 0, skillActive: true} (what unitsEnd reports) resumes the timed skill without a charge', () => {
+test('unite carryState: a skill running at the end of the own combat is not carried — unitsEnd reports sp 0 and the skill enters 联防 off', () => {
+  // community report #34 / GitHub #82: the carried skillActive used to restart the skill for free (bar empty, skill on)
   const h = makeBattle({
-    defs: { chess: { t_sn: sniper({ duration: 10, spCost: 10, initSp: 0, bb: { atk: 1 } }) } },
-    units: [{ chessId: 't_sn', row: 10, col: 4, carryState: { hpPct: 0.6, sp: 0, skillActive: true } }], content: 'generic',
+    defs: { chess: { t_sn: sniper({ duration: 10, spCost: 10, initSp: 10, bb: { atk: 1 } }) }, enemies: { e_dummy: enemyRec({ key: 'e_dummy', hp: 1e9, speed: 0 }) } },
+    units: [{ chessId: 't_sn', row: 10, col: 4 }], enemies: [{ key: 'e_dummy', pos: [10, 6] }], content: 'generic', autoFinish: false,
   });
-  h.step();
-  const u = h.unit('t_sn');
-  approx(u.hpRatio, 0.6, 1e-9);
-  assert.equal(u.skill.active, true);
-  assert.equal(u.skill.charges, 0);
-  assert.ok(u.skill.sp < 0.01);
-  approx(u.s.atk, 200);
-  // and a real end-of-battle report round-trips: unitsEnd of a running skill carries sp 0 + skillActive
+  h.runUntil(() => h.unit('t_sn').skill.active, 10);
   h.run(1);
   const end = h.result().perPlayer.p1.unitsEnd[0];
-  assert.equal(end.skillActive, true);
-  assert.equal(end.sp, 0);
+  assert.equal(end.skillActive, true, 'reported');
+  assert.equal(end.sp, 0, 'the SP was spent at the activation (PRTS 技能 "触发技能后…消耗相应的技力")');
+  const u2 = makeBattle({
+    defs: { chess: { t_sn: sniper({ duration: 10, spCost: 10, initSp: 0, bb: { atk: 1 } }) } },
+    units: [{ chessId: 't_sn', row: 10, col: 4, carryState: { hpPct: 0.6, sp: end.sp, skillActive: end.skillActive } }], content: 'generic',
+  });
+  u2.step();
+  const u = u2.unit('t_sn');
+  approx(u.hpRatio, 0.6, 1e-9);
+  assert.equal(u.skill.active, false);
+  assert.equal(u.skill.charges, 0);
+  assert.ok(u.skill.sp < 0.2);
+  approx(u.s.atk, 100);
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -217,7 +222,7 @@ test('generic text rules: 泡泡 stops attacking; 小满 sleeps ≤3 enemies onc
 });
 
 test('generic element: 塑心 charges add 85 % ATK of 凋亡 (apoptosis) damage to the gauge', () => {
-  // the generic kit's numbers (tier6.js has a hand-written 塑心 kit whose talent amplifies apoptosis in range)
+  // the generic kit's numbers (kits/ops/chess_char_6_09-cello.js is a hand-written 塑心 kit whose talent amplifies apoptosis in range)
   const h = makeBattle({ defs: { enemies: { enemy_dummy: dummy() } }, units: [{ chessId: 'chess_char_6_09_a', row: 10, col: 4 }], enemies: [{ key: 'enemy_dummy', pos: [10, 6] }], timeLimit: 60, content: 'generic' });
   const u = h.unit('chess_char_6_09_a');
   assert.ok(h.runUntil(() => u.skill.activations >= 1 && h.enemy('enemy_dummy').elem.apoptosis > 0, 40));

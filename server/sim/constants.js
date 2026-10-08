@@ -38,7 +38,7 @@ export const BLOCK_RADIUS_SQ = Object.freeze({ ground: 0.49999037, fly: 0.799951
 /**
  * An enemy's 隐匿 after a block ends (s): PRTS 作战机制 §隐匿 "对于绝大部分可隐匿的敌人而言，在被我方单位阻挡后会解除隐匿，不被
  * 阻挡的3秒后重新进入隐匿" / §隐匿与Buff的关系 "阻挡状态解除后3s开关重新被开启而恢复隐匿". An enemy page's "（解除阻挡N秒后
- * 恢复）" overrides it per 隐匿 source (buff `data.stealthRestore`: content/enemies.js). Battle._stealthSwitch; our
+ * 恢复）" overrides it per 隐匿 source (buff `data.stealthRestore`: content/enemies/helpers.js STEALTH_RESTORE_BY_KEY). Battle._stealthSwitch; our
  * operators' 隐匿 / 迷彩 are never lifted by blocking ("我方干员并不会因为阻挡而解除隐匿").
  */
 export const STEALTH_RESTORE = 3;
@@ -48,7 +48,7 @@ export const PROJECTILE_SPEED = 12;
  * Projectile speeds per visual kind (tiles/s). `none`/`beam` are instant. `boomerang` (回环射手 跃跃) is the OUTBOUND
  * flight to the target — PRTS 跃跃 特性 note "投射物飞行速度15，返回时飞行速度3.75"; the way back is
  * BOOMERANG_RETURN_SPEED (ai.js throwBoomerang). `droneBomb` = 暴鸰's bomb (the official projectile_bombd `_speed` 5;
- * content/enemies.js kitBombd).
+ * content/enemies/fly.js kitBombd).
  */
 export const PROJECTILE_SPEEDS = Object.freeze({ arrow: 14, bolt: 11, bomb: 8, lob: 8, orb: 10, drone: 16, enemy: 10, boomerang: 15, droneBomb: 5 });
 /** 回环射手: speed (tiles/s) of a boomerang flying back from its hit point to its thrower (PRTS "返回时飞行速度3.75"). */
@@ -129,7 +129,10 @@ export const PULL_ORIGIN = 0.5;
 export const PULL_STOP_RADIUS = 0.6708;
 export const PUSH_DIRECTIONAL_MIN_DIST = 0.25;
 
-/** Freeze caused by cold on cold (DESIGN §5.3). */
+/**
+ * Fallback freeze when a second 寒冷 lands and neither the remaining cold nor the incoming one has a duration
+ * (Battle.applyStatus). A real duration uses max(remaining, incoming) — PRTS 术语释义 寒冷 「持续时间取双方之中最高」.
+ */
 export const COLD_FREEZE_DURATION = 3;
 /** 浮空 (ba.levitate): the duration is halved on units heavier than this weight (massLevel). */
 export const LEVITATE_HALF_WEIGHT = 3;

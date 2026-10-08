@@ -13,7 +13,7 @@ test('Vercel build publishes browser mounts and keeps server code and owner cred
     cwd: root, env: { ...process.env, SP_FETCH_ASSETS: '0', SP_ROOM_CREATION: 'owner', SP_OWNER_KEY: secret },
   });
   const out = path.join(root, 'dist');
-  for (const file of ['index.html', 'js/main.js', 'js/locales/ko.js', 'vendor/preact.module.js',
+  for (const file of ['index.html', 'js/main.js', 'i18n/ko.json', 'data/i18n/ko.json', 'packs/index.json', 'vendor/preact.module.js',
     'shared/protocol.js', 'data/config.json', 'data/local-assets.json', 'sim/Battle.js', 'data.js']) {
     assert.ok(existsSync(path.join(out, file)), file);
   }

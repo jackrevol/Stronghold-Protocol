@@ -13,7 +13,8 @@
 //              there: an enemy gains 1 layer — 2 at 重量 ≥ heavyWeight (the device's `value`, 3) — of ASPD aspdPerStack
 //              (fractions are ×100 ASPD) and move speed × (1 + moveMulPerStack × layers), an operator 1 layer of the
 //              ASPD part only; at most maxStacks layers; cleared on leaving
-//   烟雾 g      operators on it cannot be targeted by enemy ranged attacks (stealth flag: blocked enemies still hit them)
+//   烟雾 g      operators on it cannot be targeted by enemy ranged attacks (stealth flag: blocked enemies still hit them —
+//              not 自制投石机, whose 索敌不受阻挡影响: blocked by one with nobody else in range it does not attack)
 //   深水 d      ground enemies on it: sea_drown[enemy].damage dmg/s (无来源 true 持续伤害, not 环境伤害: tags dot /
 //              periodic / deepsea), ASPD attack_speed (×100), move × move_speed
 //   活性源石 i  a unit on it (allies and ground enemies) gets a timed effect: damage true dmg/s, ATK + atk, ASPD +
@@ -374,11 +375,11 @@ function enterTerrain(battle, st, u, code) {
  * so without it the loss continues. One effect per unit (PRTS 作战机制: "同名buff的默认叠加策略buff只能表现出一个"): a
  * unit that already carries it gets its full `duration` back and keeps its per-second rhythm — no second effect, no
  * extra tick [ASSUMED: the time counts from the last contact — so an operator deployed on it, always in contact, drains
- * past `duration`]. An operator moved off the tile (Battle.relocate: 乌尔比安 S3, 夕's 小自在 …) keeps it for its time;
- * leaving the field drops it with every buff; a 重生 clears it (enemies.js rebirthCleanse: PRTS 特殊机制 §重生 "清空自身
- * 身上除白名单外所有Buff") and contact gives it again while the unit is on the tile [ASSUMED]. The tick (infectionDamage)
- * is true damage no unit deals (无来源), tagged 'terrain' = 环境伤害 (PRTS 自然环境 lists 活性源石), not 'dot' [ASSUMED:
- * PRTS 伤害分类's list of BUFF damage does not name it].
+ * past `duration`]. An operator moved off the tile (Battle.relocate: 夕's 小自在 …; Battle.moveRedeploy: 乌尔比安 S3)
+ * keeps it for its time; leaving the field drops it with every buff; a 重生 clears it (enemies/archetypes.js rebirthCleanse: PRTS
+ * 特殊机制 §重生 "清空自身身上除白名单外所有Buff") and contact gives it again while the unit is on the tile [ASSUMED]. The
+ * tick (infectionDamage) is true damage no unit deals (无来源), tagged 'terrain' = 环境伤害 (PRTS 自然环境 lists 活性源石),
+ * not 'dot' [ASSUMED: PRTS 伤害分类's list of BUFF damage does not name it].
  */
 function touchInfection(battle, st, u) {
   const I = st.infection;
@@ -490,11 +491,13 @@ function ensureTick(battle, st) {
     for (const u of st.turrets.values()) tickTurret(battle, u, dt);
   });
   // a unit that (re)deploys / spawns starts fresh (death drops its buffs) and gets its tile's terrain at once: smog
-  // must already hide an operator from the first enemy shot of the battle
+  // must already hide an operator from the first enemy shot of the battle. A 【移动】 (ctx.move: 乌尔比安 S3,
+  // Battle.moveRedeploy) keeps its buffs, so it changes tiles like a walk instead: starting from nothing would strand
+  // the old tile's smog / airflow buff on it
   battle.on('deploy', (ctx) => {
     const u = ctx.unit;
     if (!u || !u.mem || u.kind === 'device') return;
-    u.mem.terrain = 0; u.mem.airAtk = 0; u.mem.airMul = 1; u.mem.airPx = null;
+    if (!ctx.move) { u.mem.terrain = 0; u.mem.airAtk = 0; u.mem.airMul = 1; u.mem.airPx = null; }
     refreshUnit(battle, st, u);
   }, { priority: 90 });
 }

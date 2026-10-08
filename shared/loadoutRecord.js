@@ -6,7 +6,6 @@
 // re-exported by server/sim/targeting.js). One implementation, so the card and the battle never disagree. (Which
 // choices a player may make: shared/protocol.js loadoutOptions.)
 
-import { sourceRecord } from './sourceRecord.js';
 import { GEO } from './constants.js';
 
 /**
@@ -107,9 +106,9 @@ export function loadoutRecord(rec, lo) {
  * The attack range a (loadout-resolved) chess record fights with from its deployment — the detail card without a live
  * entry, the board's range overlay and the deploy wheel (DESIGN §16), the same tiles the battle unit starts with (prep
  * m.unitStats `range`): the selected skill's grid when it reads "被动效果：攻击范围扩大" (引星棘刺 S3 3-9: her own range
- * while she carries it, tier5 kit); else an elite whose equipped module reads "攻击范围扩大" uses that module's own grid
+ * while she carries it, her kit); else an elite whose equipped module reads "攻击范围扩大" uses that module's own grid
  * — its range-only talent change (talentIndex −1), e.g. SPC-X = the 3×3 caster range + the centre tile [0,3] — as the
- * kits do (tier4 moduleRangeGrid, tier5 moduleRangeUp); anything else its `rangeGrid`. Then grown by the 特性's
+ * kits do (kits/shared/tier4.js moduleRangeGrid, shared/tier5.js moduleRangeUp); anything else its `rangeGrid`. Then grown by the 特性's
  * permanent 攻击距离 (traitRangeExtend: 信仰搅拌机 SPT-Y "攻击距离+1"). A running skill's range is the live entry's.
  * @param {object|null} rec loadoutRecord(…) output (or a data/chess.json record: its default module)
  * @returns {number[][]|null}
@@ -119,9 +118,9 @@ export function attackRangeGrid(rec) {
   let g = Array.isArray(rec.rangeGrid) ? rec.rangeGrid : null;
   const sk = rec.skill;
   const m = rec.module;
-  if (sk && Array.isArray(sk.rangeGrid) && sk.rangeGrid.length && /被动效果：攻击范围扩大/.test(String(sourceRecord(sk).desc ?? ''))) {
+  if (sk && Array.isArray(sk.rangeGrid) && sk.rangeGrid.length && /被动效果：攻击范围扩大/.test(String(sk.desc ?? ''))) {
     g = sk.rangeGrid;
-  } else if (rec.isGolden && m && m.active && m.id && /攻击范围扩大/.test(String(sourceRecord(rec.trait)?.moduleDesc ?? ''))) {
+  } else if (rec.isGolden && m && m.active && m.id && /攻击范围扩大/.test(String(rec.trait?.moduleDesc ?? ''))) {
     const mod = (Array.isArray(rec.modules) ? rec.modules : []).find((x) => x && x.uniEquipId === m.id);
     const mg = (mod?.talentChanges || []).find((t) => t && t.talentIndex === -1 && Array.isArray(t.rangeGrid) && t.rangeGrid.length)?.rangeGrid;
     if (mg) g = mg;
@@ -132,13 +131,13 @@ export function attackRangeGrid(rec) {
 
 /**
  * The permanent 攻击距离 (ability_range_forward_extend) a record's 特性 grants — a module's, e.g. 信仰搅拌机 SPT-Y
- * "攻击距离+1" (tier4 rangeUp: a persistent rangeExtend buff, s.baseRangeExtend); 0 for one that works "在集成战略中" only
+ * "攻击距离+1" (its kit's rangeUp: a persistent rangeExtend buff, s.baseRangeExtend); 0 for one that works "在集成战略中" only
  * (空弦 ISW-A). The other 攻击距离 of the mode are skills' (their running range).
  * @param {object|null} rec loadoutRecord(…) output
  */
 export function traitRangeExtend(rec) {
   const t = rec && typeof rec === 'object' ? rec.trait : null;
-  if (!t || typeof t !== 'object' || /集成战略/.test(String(sourceRecord(t).moduleDesc ?? ''))) return 0;
+  if (!t || typeof t !== 'object' || /集成战略/.test(String(t.moduleDesc ?? ''))) return 0;
   const n = Math.floor(Number(t.bb?.ability_range_forward_extend) || 0);
   return n > 0 ? n : 0;
 }

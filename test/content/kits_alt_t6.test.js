@@ -1,4 +1,4 @@
-// Operator loadouts (DESIGN §16) for the tier-6 kits (server/sim/content/kits/tier6.js): every selectable NON-default
+// Operator loadouts (DESIGN §16) for the tier-6 kits (server/sim/content/kits/ops/): every selectable NON-default
 // skill of every visible tier-6 chess is hand-authored (tools/kit-coverage.mjs) and shows its signature effect for the
 // normal (Lv4) and the elite (Lv7) chess — numbers from the selected skill's blackboard (data/chess.json skills[]) —
 // and the elite's non-default module choices (Y / RA modules, or 'none') change what the kit does.
@@ -194,12 +194,16 @@ test('6_02 圣聆初雪 S1 铃音吹雪: 2 charges (cast with enemies in range);
   }
 });
 
-test('6_02 圣聆初雪 S2 霜涛覆岭: toggle; group attacks at atk_scale_s2 × ATK; ground enemies on snow take 20 %/s, leaving snow chills, 5 layers freeze the tile (保护目标)', () => {
+// PRTS 圣聆初雪 S2 霜涛覆岭 "积雪在目标点积累至5层时，使目标点变为冻结状态", 备注 "目标点冻结的实际效果为令圣聆初雪在该地块上召唤一个保护目标
+// （冻结状态）（无视部署属性），并去除相应地块上的积雪（且存在自身的该召唤物的地块不会积雪）", "可以被'变为冻结状态'的目标点包括常规的保护目标点…";
+// the token's page: "技能发动后于保护目标叠加5层积雪". Community report #32: until 0.1.3 any free standable tile froze and the blue
+// gate never did (nobody can stand on it).
+test('6_02 圣聆初雪 S2 霜涛覆岭: toggle; group attacks at atk_scale_s2 × ATK; ground enemies on snow take 20 %/s, leaving snow chills, 5 layers on the protection point freeze it (保护目标（冻结状态）), no other tile', () => {
   for (const id of both('chess_char_6_02')) {
     const sid = 'skchr_sbell2_2', bb = bbOf(id, sid);
     const h = run({
       defs: { enemies: { e: dummy('e'), w: enemyRec({ key: 'w', hp: 1e7, speed: 1 }) } },
-      units: [U(id, sid, 10, 4, { carryState: READY })], enemies: [{ key: 'e', pos: [10, 5] }, { key: 'w', route: 0, time: 1 }],
+      units: [U(id, sid, 10, 3, { carryState: READY })], enemies: [{ key: 'e', pos: [10, 5] }, { key: 'w', route: 0, time: 1 }, { key: 'w', route: 0, time: 40 }],
     });
     const u = h.unit(id);
     usesSkill(u, sid);
@@ -218,13 +222,30 @@ test('6_02 圣聆初雪 S2 霜涛覆岭: toggle; group attacks at atk_scale_s2 �
     approx(dot[0].amount, u.s.atk * bb['talent@s2_magic_scale'] * u.s.dmgDealtMul, '20 % ATK per second');
     assert.ok(h.runUntil(() => statuses(h, 'cold', (c) => c.source === u && isKey(c.target, 'w')).length > 0, 20), 'leaving snow ⇒ cold');
     approx(statuses(h, 'cold', (c) => c.source === u && isKey(c.target, 'w'))[0].duration, bb['talent@cold'], 'cold duration');
-    // a free ground tile of her range at 4 layers: the next layer freezes it
+    const iceOf = () => h.b.allyUnits.find((t) => t.defId === 'token_10058_sbell2_icetgt' && t.alive);
+    // a free ground tile of her range reaching 5 layers: no freeze (until 0.1.3 it turned into the token)
     const fk = 11 * COLS + 4;
+    assert.ok(u.rangeKeys.includes(fk));
     u.mem.snow.set(fk, 4);
-    assert.ok(h.runUntil(() => h.b.allyUnits.some((t) => t.defId === 'token_10058_sbell2_icetgt' && t.alive), 7), '保护目标（冻结状态）');
-    const ice = h.b.allyUnits.find((t) => t.defId === 'token_10058_sbell2_icetgt' && t.alive);
-    assert.deepEqual([ice.tileR, ice.tileC], [11, 4]);
+    h.run(7);
+    assert.equal(u.mem.snow.get(fk), 5);
+    assert.equal(iceOf(), undefined, 'only a protection point freezes');
+    // the blue gate (9,2) — build NONE, nobody may stand there — at 4 layers: the next layer freezes it
+    const gk = 9 * COLS + 2;
+    assert.equal(h.b.grid.tile(9, 2).special, 'end');
+    assert.ok(u.rangeKeys.includes(gk));
+    u.mem.snow.set(gk, 4);
+    assert.ok(h.runUntil(() => !!iceOf(), 7), '保护目标（冻结状态）');
+    const ice = iceOf();
+    assert.deepEqual([ice.tileR, ice.tileC], [9, 2]);
     assert.equal(ice.s.blockCnt, 3);
+    assert.equal(u.mem.snow.get(gk), undefined, 'its snow is used up');
+    h.run(7);
+    assert.equal(u.mem.snow.get(gk), undefined, 'no snow gathers under her token');
+    // a walker reaching the gate is held there by it, not leaked
+    const leaks0 = h.result().perPlayer.p1.leaked.length;
+    assert.ok(h.runUntil(() => h.b.enemies.some((x) => x.alive && isKey(x, 'w') && x.blockedBy === ice), 60), 'blocked by the frozen gate');
+    assert.equal(h.result().perPlayer.p1.leaked.length, leaks0);
     done(h);
   }
 });
@@ -292,7 +313,7 @@ test('6_03 余 S2 厚礼上宾: cast with an enemy on its x-1 (SKILL_RANGE — a
 // =================================================================================================================
 // 6_04 浊心斯卡蒂
 
-test('6_04 浊心斯卡蒂 S1 同归殊途之吟: SP_FULL, full HP + max HP +; trait heal raised; 50 % of the damage of allies in range goes to her', () => {
+test('6_04 浊心斯卡蒂 S1 同归殊途之吟: SP_FULL, full HP + max HP +; trait (生命回复速度) raised; 50 % of the damage of allies in range goes to her', () => {
   for (const id of both('chess_char_6_04')) {
     const sid = 'skchr_skadi2_1', bb = bbOf(id, sid);
     const h = run({
@@ -312,14 +333,14 @@ test('6_04 浊心斯卡蒂 S1 同归殊途之吟: SP_FULL, full HP + max HP +; t
     approx(onAlly[0].amount, 1000 * (1 - bb.damage_resistance), 'the ally takes the rest');
     approx(onHer[0].amount, 1000 * bb.damage_resistance, 'she takes the transferred part');
     assert.equal(onHer[0].type, 'true');
-    const hh = heals(h, u, (c) => c.target === a && c.opts?.aura);
-    assert.ok(hh.length > 0);
-    approx(hh[hh.length - 1].amount, u.s.atk * bb['attack@atk_to_hp_recovery_ratio'], 'trait heal raised');
+    // the trait is an hpRegen buff on the ally (PRTS 分支特性信息 吟游者; professions.js bardRegen), no heal of hers
+    approx(a.findBuff(`trait:bard:${u.id}`)?.mods.hpRegen ?? 0, u.s.atk * bb['attack@atk_to_hp_recovery_ratio'], 'trait raised');
+    assert.equal(heals(h, u, (c) => c.target === a).length, 0, 'no heal of hers');
     done(h);
   }
 });
 
-test('6_04 浊心斯卡蒂 S2 同葬无光之愿: toggle; 鼓舞 ATK and DEF (atk / def × hers) on the other allies of her range, trait heal 16/17 %', () => {
+test('6_04 浊心斯卡蒂 S2 同葬无光之愿: toggle; 鼓舞 ATK and DEF (atk / def × hers) on the other allies of her range, trait 16/17 % (生命回复速度)', () => {
   for (const id of both('chess_char_6_04')) {
     const sid = 'skchr_skadi2_2', bb = bbOf(id, sid);
     const h = run({
@@ -338,9 +359,28 @@ test('6_04 浊心斯卡蒂 S2 同葬无光之愿: toggle; 鼓舞 ATK and DEF (at
     approx(a.s.def, a.base.def + u.s.def * bb.def, 'DEF raised by the flat value', 1e-3);
     assert.ok(!u.findBuff('inspire') && !u.findBuff('inspire:def'), 'never on herself');
     a.hp = a.s.maxHp * 0.5;
+    const hp0 = a.hp, t1 = h.b.time;
     h.run(1.1);
-    const hh = heals(h, u, (c) => c.target === a && c.opts?.aura);
-    approx(hh[hh.length - 1].amount, u.s.atk * bb['attack@atk_to_hp_recovery_ratio'], 'trait heal ratio');
+    const v = u.s.atk * bb['attack@atk_to_hp_recovery_ratio'];
+    approx(a.findBuff(`trait:bard:${u.id}`)?.mods.hpRegen ?? 0, v, 'trait ratio');
+    assert.ok(Math.abs(a.hp - hp0 - (a.s.hpRegen) * (h.b.time - t1)) <= 1.5, `regenerated ${a.hp - hp0}`);
+    done(h);
+  }
+});
+
+test('6_04 浊心斯卡蒂 S2 同葬无光之愿 (自动触发, effects on her allies only): on as soon as its SP is full — no enemy needed', () => {
+  for (const id of both('chess_char_6_04')) {
+    const sid = 'skchr_skadi2_2';
+    const h = run({
+      defs: { chess: { ally_a: plain('ally_a', { stats: { maxHp: 1e5, atk: 400, def: 100 } }) } },
+      units: [U(id, sid, 10, 4, { carryState: READY }), { chessId: 'ally_a', row: 10, col: 5 }],
+    });
+    const u = h.unit(id), a = h.unit('ally_a');
+    usesSkill(u, sid);
+    assert.equal(u.skill.rule, 'SP_FULL');
+    assert.ok(h.runUntil(() => u.skill.active, 2), 'on with nobody on the field (the data DEFAULT waited for an enemy in her range)');
+    h.run(1.1);
+    assert.ok(a.findBuff('inspire') && a.findBuff('inspire:def'), '鼓舞 on the ally beside her');
     done(h);
   }
 });
@@ -668,7 +708,11 @@ test('6_11 缪尔赛思 S2 生态耦合: +cost DP; melee copies regenerate and t
     const eco = tok().findBuff('mlyss:eco');
     assert.ok(eco, 'melee copy buffed');
     approx(eco.mods.hpRegenRatio, bb.hp_recovery_per_sec_by_max_hp_ratio);
-    approx(eco.mods.physTakenMul, 1 - bb.damage_resistance);
+    // 庇护: the shared effect of every source (同名效果取最高 — kits/shared/tier1.js holdProtect)
+    const protect = tok().findBuff('protect');
+    assert.ok(protect && protect.source === u, 'the 庇护 she grants');
+    approx(protect.mods.physTakenMul, 1 - bb.damage_resistance);
+    approx(protect.mods.artsTakenMul, 1 - bb.damage_resistance);
     done(h);
 
     // ranged copy: a sniper to copy
@@ -978,7 +1022,11 @@ test('6_17 耀骑士临光 S2 逐夜烁光: on deploy ATK + and 3 护盾 layers 
     const u = h.unit(id);
     usesSkill(u, sid);
     h.step();
-    approx(u.findBuff('nearl2:night').mods.atkPct, bb.atk);
+    approx(u.skill.spec.mods.atkPct, bb.atk);
+    assert.equal(u.skill.kind, 'duration');
+    assert.equal(u.skill.active, true);
+    assert.equal(u.skill.ready, false);
+    assert.equal(h.snapshot().units.find((t) => t[0] === u.id)[6], dur);
     assert.equal(u.findBuff('nearl2:shield').shieldHits, bb.times);
     h.run(bb.times * 1.2 + 1);
     const taken = h.hooksOf('damaged').filter((c) => c.target === u);
@@ -988,15 +1036,30 @@ test('6_17 耀骑士临光 S2 逐夜烁光: on deploy ATK + and 3 护盾 layers 
     assert.ok(h.runUntil(() => !u.alive, dur + 1));
     approx(h.b.time, dur, 'withdraws when it ends', 0.05);
     approx(u.respawnAt - h.b.time, u.base.respawnTime * bb.respawn_time, 'this redeploy ×1.25', 1e-3);
+    assert.equal(u.removeReason, 'retreat');
+    assert.equal(u.skill.active, false);
+    assert.deepEqual(h.hooksOf('skillEnd').filter((c) => c.unit === u).map((c) => c.reason), ['duration']);
     done(h);
 
     const k = run({ defs: { chess: { kaz: plain('kaz', { bonds: ['kazimierzShip'] }) } }, units: [U(id, sid, 10, 4), { chessId: 'kaz', row: 12, col: 4 }] });
     const ku = k.unit(id);
     k.step(2);
-    assert.ok(ku.alive && ku.findBuff('nearl2:night'));
+    assert.ok(ku.alive && ku.skill.active);
     assert.ok(k.runUntil(() => !ku.alive, dur + 1));
     approx(ku.respawnAt - k.b.time, ku.base.respawnTime, '卡西米尔 before her: no extension', 1e-3);
     done(k);
+
+    const dead = run({ units: [U(id, sid, 10, 4, { moduleId: 'none' })] });
+    dead.step();
+    const du = dead.unit(id);
+    dead.b.kill(du);
+    const respawnAt = du.respawnAt;
+    approx(respawnAt - dead.b.time, du.base.respawnTime, 'early death keeps ordinary redeployment');
+    assert.equal(du.findBuff('nearl2:shield'), null);
+    dead.run(dur + 1);
+    assert.equal(du.respawnAt, respawnAt, 'no delayed retreat or multiplier after death');
+    assert.deepEqual(dead.hooksOf('skillEnd').filter((c) => c.unit === du).map((c) => c.reason), ['death']);
+    done(dead);
   }
 });
 
@@ -1123,6 +1186,26 @@ test('6_20 纯烬艾雅法拉 S1 无声润物: toggle heal; ATK +, 2 heal target
     a3.elem.burn = 800;
     h.run(1.05);
     approx(800 - a3.elem.burn, u.s.atk * bb['agoat2_s_1[aura].ep_heal_ratio'], 'per second', 1e-3);
+    done(h);
+  }
+});
+
+test('6_20 纯烬艾雅法拉 S1 无声润物 (自动触发, effects on her allies only): on as soon as its SP is full — nobody injured, no enemy (the owner\'s decision of 2026-10-05)', () => {
+  for (const id of both('chess_char_6_20')) {
+    const sid = 'skchr_agoat2_1', bb = bbOf(id, sid);
+    const h = run({
+      defs: { chess: { a1: plain('a1', { stats: { maxHp: 1e5 } }) } },
+      units: [U(id, sid, 10, 3, { carryState: READY }), { chessId: 'a1', row: 10, col: 5 }],
+    });
+    const u = h.unit(id), a1 = h.unit('a1');
+    usesSkill(u, sid);
+    assert.equal(u.skill.rule, 'SP_FULL');
+    assert.ok(h.runUntil(() => u.skill.active, 2), 'on with every ally at full HP and no enemy (the data DEFAULT heal rule waited for an injured ally)');
+    assert.equal(a1.hp, a1.s.maxHp);
+    h.b.addBuff(u, { key: 'test:disarm', flags: { disarm: true } }); // (no heals: only the skill's 元素损伤 recovery)
+    a1.elem.burn = 800;
+    h.run(1.05);
+    approx(800 - a1.elem.burn, u.s.atk * bb['agoat2_s_1[aura].ep_heal_ratio'], 'its 元素损伤 recovery runs at full HP', 1e-3);
     done(h);
   }
 });
@@ -1338,7 +1421,7 @@ test('module 维娜 秩序圣“球”: 战栗 6 s (elite / leader 12 s), ×1.15
   done(d);
 });
 
-test('module 焰影苇草 “独属自己的一隅”: damage ×1.1 while an operator of her range is injured; 灼痕 38 % / 8 s', () => {
+test('module 焰影苇草 “独属自己的一隅”: damage ×1.1 while an operator of her range is injured; 灼痕 40 % / 8 s (full potential)', () => {
   const id = ELITE('chess_char_6_08'), M = 'uniequip_003_reed2';
   const h = run({ defs: { chess: { a: plain('a') }, enemies: { e: dummy('e') } }, units: [{ chessId: id, row: 10, col: 4, moduleId: M, carryState: IDLE }, { chessId: 'a', row: 11, col: 5 }], enemies: [{ key: 'e', pos: [10, 6] }] });
   const u = h.unit(id), a = h.unit('a');
@@ -1347,7 +1430,7 @@ test('module 焰影苇草 “独属自己的一隅”: damage ×1.1 while an ope
   a.hp = a.s.maxHp * 0.5;
   h.run(0.5);
   approx(u.findBuff('reed2:corner')?.mods.dmgDealtMul ?? 1, 1.1, 'injured ally ⇒ ×1.1');
-  approx(tal(id, MOD(M)).damage_scale, 1.38);
+  approx(tal(id, MOD(M)).damage_scale, 1.4);   // 1.38 + the potential step
   done(h);
   const d = run({ defs: { chess: { a: plain('a') } }, units: [{ chessId: id, row: 10, col: 4, carryState: IDLE }, { chessId: 'a', row: 11, col: 5 }] });
   d.step();
@@ -1411,7 +1494,7 @@ test('module 迷迭香 特限证章: two hits (one aftershock) instead of three'
   }
 });
 
-test('module 流明 “幸运”: far heals are not reduced; 应急处理 heals 100 % with a 10 s cooldown', () => {
+test('module 流明 “幸运”: far heals are not reduced; 应急处理 heals 100 % with an 8 s cooldown (full potential)', () => {
   const id = ELITE('chess_char_6_14'), M = 'uniequip_003_lumen';
   for (const [moduleId, mul] of [[M, 1], [null, tbOf(id).heal_scale]]) {
     const h = run({ defs: { chess: { f: plain('f', { stats: { maxHp: 1e5 } }) } }, units: [{ chessId: id, row: 10, col: 3, moduleId, carryState: IDLE }, { chessId: 'f', row: 10, col: 6 }] });
@@ -1423,7 +1506,7 @@ test('module 流明 “幸运”: far heals are not reduced; 应急处理 heals 
     done(h);
   }
   approx(tal(id, MOD(M), 1).heal_scale, 1);
-  approx(tal(id, MOD(M), 1).duration, 10);
+  approx(tal(id, MOD(M), 1).duration, 8);   // 10 s − the potential step
 });
 
 test('module 仇白 欲雪时: the first hit on an enemy binds it 3 s; ASPD +12 with ≥2 enemies in range', () => {

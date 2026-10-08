@@ -32,28 +32,28 @@ test('wizard room toggle, catalog filters, repeat purchases, and full-tier disco
     });
     await page.setViewport({ width: 1440, height: 900 });
     await page.evaluateOnNewDocument(() => Object.defineProperty(navigator, 'languages', { get: () => ['en-US'] }));
-    await page.goto(server.url, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${server.url}?lang=en`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.title-login input');
     await page.type('.title-login input', 'WizardTest');
     await page.click('.title-login .btn--primary');
     await page.waitForFunction(() => globalThis.__SP__?.net.status === 'online');
-    await page.evaluate(() => __SP__.net.request('room.create', { mode: 'solo', difficulty: 'NORMAL' }));
+    await page.evaluate(() => globalThis.__SP__.net.request('room.create', { mode: 'solo', difficulty: 'NORMAL' }));
     await page.waitForSelector('.room-screen');
     await page.evaluate(() => [...document.querySelectorAll('.room-screen button')].find((b) => b.textContent.includes('Wizard mode')).click());
-    await page.waitForFunction(() => __SP__.store.get().room?.wizardMode === true);
+    await page.waitForFunction(() => globalThis.__SP__.store.get().room?.wizardMode === true);
     if (process.env.SP_E2E_OUT) {
       await page.screenshot({ path: `${process.env.SP_E2E_OUT}/wizard-room-1440.png` });
       await page.setViewport({ width: 844, height: 390 });
       await page.screenshot({ path: `${process.env.SP_E2E_OUT}/wizard-room-844.png` });
       await page.setViewport({ width: 1440, height: 900 });
     }
-    await page.evaluate(() => __SP__.net.request('room.start', {}));
-    await page.waitForFunction(() => __SP__.store.get().match.public?.phase === 'INFO_CHECK');
-    await page.evaluate(() => __SP__.net.request('g.infoReady', {}));
-    await page.waitForFunction(() => __SP__.store.get().match.public?.phase === 'BAND_DRAFT');
-    await page.evaluate(() => __SP__.net.request('g.band', { bandId: 'band_bldsk' }));
+    await page.evaluate(() => globalThis.__SP__.net.request('room.start', {}));
+    await page.waitForFunction(() => globalThis.__SP__.store.get().match.public?.phase === 'INFO_CHECK');
+    await page.evaluate(() => globalThis.__SP__.net.request('g.infoReady', {}));
+    await page.waitForFunction(() => globalThis.__SP__.store.get().match.public?.phase === 'BAND_DRAFT');
+    await page.evaluate(() => globalThis.__SP__.net.request('g.band', { bandId: 'band_bldsk' }));
     await page.waitForSelector('.shopbar.is-wizard .wizard-catalog');
-    await page.waitForFunction(() => __SP__.store.get().match.public?.phase === 'PREP');
+    await page.waitForFunction(() => globalThis.__SP__.store.get().match.public?.phase === 'PREP');
 
     const match = [...server.lobby.rooms.values()][0].match;
     const ps = [...match.players.values()][0];
@@ -72,7 +72,7 @@ test('wizard room toggle, catalog filters, repeat purchases, and full-tier disco
       await page.click('.shopbar__cards .scard');
       await page.waitForSelector('.shopbar__cards .scard.is-armed');
       await page.click('.shopbar__cards .scard');
-      await page.waitForFunction((funds) => __SP__.store.get().match.private?.funds === funds, {}, 100 - price * n);
+      await page.waitForFunction((funds) => globalThis.__SP__.store.get().match.private?.funds === funds, {}, 100 - price * n);
     }
     assert.equal(ps.stats.merges, 1);
     await page.waitForSelector('.shopbar__rwcards .scard');
@@ -94,7 +94,7 @@ test('wizard room toggle, catalog filters, repeat purchases, and full-tier disco
     await page.click('.shopbar__rwcards .scard:last-child');
     await page.waitForSelector('.shopbar__rwcards .scard:last-child.is-armed');
     await page.click('.shopbar__rwcards .scard:last-child');
-    await page.waitForFunction(() => !__SP__.store.get().match.private?.shop.rewardOffer);
+    await page.waitForFunction(() => !globalThis.__SP__.store.get().match.private?.shop.rewardOffer);
     assert.ok(ps.hand.some((p) => p?.id === pickId));
     await page.waitForSelector('.wizard-catalog input');
     assert.equal(await page.$eval('.wizard-catalog input', (el) => el.value), buyId);

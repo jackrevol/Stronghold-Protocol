@@ -4,12 +4,11 @@
 // once near the app root. Identical messages shown within a short window are merged (with a ×N
 // counter) instead of stacking, and the stack is capped so an error storm cannot flood the screen.
 
-import { t } from '../i18n.js';
 import { h } from '../../vendor/preact.module.js';
 import { useEffect, useReducer } from '../../vendor/hooks.module.js';
 import htm from '../../vendor/htm.module.js';
 import { ERR_TEXT } from '../../../shared/constants.js';
-import { CLIENT_ERR_TEXT } from '../net.js';
+import { t } from '../../../shared/i18n.js';
 
 // no shared static vnodes (see components.js hFresh: htm's static cache would retain unmounted DOM)
 function hFresh(type, props, ...children) {
@@ -89,19 +88,18 @@ export function dismissToast(id) {
 }
 
 /**
- * Text for an error-ish value: NetError / {code,msg} / Error / string.
+ * Text for an error-ish value: NetError / {code,msg} / Error / string — in the current language (the Chinese texts are
+ * msgids: ERR_TEXT, net.js CLIENT_ERR_TEXT, a server `msg`; anything else is shown as it is).
  * @param {any} err
  * @returns {string}
  */
 export function describeError(err) {
-  if (!err) return t('error.unknown');
-  const code = typeof err === 'string' ? err : err.code;
-  // VERSION may arrive as BAD_MSG + a version detail. Keep transport codes unchanged.
-  if (err.detail && /version/i.test(err.detail) || err.text === CLIENT_ERR_TEXT.VERSION) return t('error.VERSION');
-  if (Object.hasOwn(ERR_TEXT, code) || Object.hasOwn(CLIENT_ERR_TEXT, code)) return t(`error.${code}`);
-  if (typeof err === 'string') return err;
-  for (const value of [err.message, err.msg, err.text]) if (typeof value === 'string' && value) return value;
-  return t('error.unknown');
+  if (!err) return t('发生未知错误');
+  if (typeof err === 'string') return t(Object.hasOwn(ERR_TEXT, err) ? ERR_TEXT[err] : err);
+  if (err.code && Object.hasOwn(ERR_TEXT, err.code)) return t(ERR_TEXT[err.code]);
+  if (typeof err.message === 'string' && err.message) return t(err.message);
+  if (typeof err.msg === 'string' && err.msg) return t(err.msg);
+  return t('发生未知错误');
 }
 
 /**

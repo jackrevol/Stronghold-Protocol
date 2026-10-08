@@ -1,4 +1,4 @@
-// Content tests for the tier-6 kits (server/sim/content/kits/tier6.js) + 盟约·辅助干员 (chess_char_1_15).
+// Content tests for the tier-6 kits (server/sim/content/kits/ops/chess_char_6_*.js) + 盟约·辅助干员 (chess_char_1_15).
 // Every test runs a real battle through the harness and checks the signature effect of the kit.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -281,8 +281,8 @@ test('余: blocked enemies take 40 % ATK arts + 12 % burn per second, 庇护 whi
   assert.ok(dot.length >= 2);
   const burn = h.dmg.filter((d) => d.src === u.id && d.element === 'burn');
   assert.ok(burn.length >= 2);
-  // 庇护 (ba.protect): physical and arts damage only
-  assert.ok(u.findBuff('yu:shelter') && near(u.s.physTakenMul, 1 - t0.damage_resistance) && near(u.s.artsTakenMul, 1 - t0.damage_resistance));
+  // 庇护 (ba.protect): physical and arts damage only — the shared effect of every source (kits/shared/tier1.js holdProtect)
+  assert.ok(u.findBuff('protect')?.source === u && near(u.s.physTakenMul, 1 - t0.damage_resistance) && near(u.s.artsTakenMul, 1 - t0.damage_resistance));
   assert.equal(u.s.trueTakenMul, 1, '庇护 does not reduce true damage');
   assert.equal(u.s.dmgTakenMul, 1);
   const base = u.base.maxHp;
@@ -298,6 +298,10 @@ test('余: S3 fire wall adds burn to allied arts damage crossing it and clears c
     enemies: [{ key: 'enemy_dummy', pos: [10, 6] }, { key: 'enemy_shooter', pos: [11, 8] }],
     seed: 11,
   });
+  // the shooter aims at 优等生 behind the wall: a taunt, since 余 (his column further right) now deploys last — the
+  // latest deployed, the shooter's pick at equal taunt (deployment by column since 0.1.3)
+  h.step();
+  h.b.addBuff(h.unit('chess_char_1_15_a'), { key: 'test:taunt', mods: { taunt: 1 }, persist: true });
   const u = h.unit('chess_char_6_03_a');
   assert.ok(h.runUntil(() => u.skill.active, 10));
   h.run(15);

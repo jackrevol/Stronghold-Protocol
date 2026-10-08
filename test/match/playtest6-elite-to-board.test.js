@@ -1,7 +1,7 @@
 // User playtest #6 follow-up — a merge's elite goes to the board when it consumed a deployed copy. The user (first-hand,
 // official game): "官方就是合成精锐时，如果消耗了场上的干员，精锐会出现在场上那个位置". PRTS 卫戍协议/帮助 §干员的获得与精锐化:
 // "不获得第3名干员，销毁已有的2名初始干员，发送1名【精锐】状态的该干员至手牌区（若消耗已部署至作战区的干员，则发送至作战区
-// 对应位置）". Remake (server/match/PlayerState.js _mergeChess, board.js mergeTile): the elite takes the tile and facing of the
+// 对应位置）". Remake (server/match/player/acquire.js _mergeChess, board.js mergeTile): the elite takes the tile and facing of the
 // consumed copy that deploys first (row desc, col asc — [ASSUMED] when several stood on the board); a 突变细胞 carrier is
 // destroyed before its gain, so its tile never counts; with no deployed copy it goes to the hand (overflow temp).
 // Equipment returns to the hand ("干员晋级后已配发装备会回收至整备区"), the copies' summons are removed and the elite on
@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { ERR, PHASE } from '../../shared/constants.js';
 import { checkLoadout } from '../../shared/protocol.js';
 import { DATA, makeMatch, give, giveItem, checkInvariants, chessOfTier, legalTileFor } from './harness.js';
-import { canPlace, positionClass, tileKey, mergeTile } from '../../server/match/board.js';
+import { canPlace, placeClass, tileKey, mergeTile } from '../../server/match/board.js';
 import { makeCtx } from '../../server/match/effectsMeta.js';
 import { attachAudit } from '../../server/match/audit.js';
 import { botPrep } from '../../server/match/bot.js';
@@ -86,11 +86,12 @@ test('buy: one deployed copy + one hand copy → the elite takes the deployed co
   m.dispose();
 });
 
-test('buy: two deployed copies → the copy that deploys first (row desc, then col asc) gives its tile and facing, in either placement order', () => {
+test('buy: two deployed copies → the copy that deploys first (col asc, then row desc: by column from the left) gives its tile and facing, in either placement order', () => {
   for (const order of ['first-placed-first', 'first-placed-last']) {
     const { m, ps } = prep({ seed: 42 });
     const [id] = meleeTier1(m);
-    // two legal tiles, the first of them in deploy order
+    // two legal tiles, the first of them in deploy order (legalTileFor walks the top row left to right: on one row, the
+    // deploy order)
     const t1 = legalTileFor(m, ps, id);
     const t2 = legalTileFor(m, ps, id, new Set([tileKey(...t1)]));
     const [early, late] = order === 'first-placed-first' ? [t1, t2] : [t2, t1];
@@ -101,7 +102,7 @@ test('buy: two deployed copies → the copy that deploys first (row desc, then c
     stock(m, ps, id);
     assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot: 0 }), { ok: true });
     const want = mergeTile([t1, t2].map((t) => ({ key: tileKey(...t) })));
-    assert.equal(want.key, tileKey(...t1), 'legalTileFor walks the deploy order');
+    assert.equal(want.key, tileKey(...t1), 'the first in deploy order');
     const elite = ps.board.get(want.key);
     assert.ok(elite && m.gd.isGolden(elite.id), `${order}: the elite on ${want.key}`);
     assert.equal(elite.dir, want.key === tileKey(...early) ? 'UP' : 'LEFT', `${order}: the facing of the copy that stood there`);
@@ -198,7 +199,8 @@ test('equipment with the hand and temp full: the elite keeps up to its 2 equip s
   const warn = m.log.warn;
   m.log.warn = (s) => { warns.push(String(s)); };
   stock(m, ps, id);
-  assert.deepEqual(m.handle('p_0', { t: 'g.buy', slot: 0 }), { ok: true }, 'a merge-completing buy needs no hand slot');
+  assert.equal(m.handle('p_0', { t: 'g.buy', slot: 0 }).error, 'HAND_FULL', 'a full hand refuses the purchase, also a merge-completing one (GitHub #82)');
+  assert.ok(ps.acquireChess(id, { source: 'grant' }), 'a gained copy completes the merge');
   m.log.warn = warn;
   const elite = ps.board.get(want);
   assert.ok(elite && m.gd.isGolden(elite.id), 'the elite took the first deployed copy\'s tile');
@@ -363,7 +365,7 @@ test('boss-field prep (R14, act2 m01): the elite takes a copy\'s tile that is le
     assert.deepEqual(m.handle(pid, { t: 'g.buy', slot: 0 }), { ok: true });
     const elite = ps.board.get('11,8');
     assert.ok(elite && elite.id === chess(id).goldenId && elite.dir === 'UP', `${pid} (${field}): the elite on board (11,8) of its boss half`);
-    assert.ok(canPlace(ps.deployMap(), positionClass(chess(elite.id)), 11, 8));
+    assert.ok(canPlace(ps.deployMap(), placeClass(ps, chess(elite.id)), 11, 8));
   }
   checkInvariants(m);
   m.dispose();
